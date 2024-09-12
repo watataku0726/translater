@@ -37,8 +37,8 @@
       "args": [],
       "stopAtEntry": false,
       "externalConsole": false,
-      "cwd": "/home/watanabe/C2RTL/translater/src",
-      "program": "/home/watanabe/C2RTL/translater/src/build/Debug/outDebug",
+      "cwd": "/home/watanabe/C2RTL/translater/include",
+      "program": "/home/watanabe/C2RTL/translater/include/build/Debug/outDebug",
       "MIMode": "gdb",
       "miDebuggerPath": "gdb",
       "setupCommands": [
