@@ -29,11 +29,11 @@
             "type": "cppbuild",
             "command": "/usr/bin/g++",
             "args": [
-                "-DEBUG",
+                "-DNDEBUG",
                 "-I${workspaceFolder}/include",
                 "${workspaceFolder}/src/*.cpp",
                 "-o",
-                "${workspaceFolder}/bin/${config:programName}_d"
+                "${workspaceFolder}/bin/${config:programName}"
             ],
             "options": {
                 "cwd": "${fileDirname}"

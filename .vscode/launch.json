@@ -7,7 +7,7 @@
       "request": "launch",
       "program": "${workspaceRoot}/bin/${config:programName}_d",
       "args": [
-        "bitcnt.s",
+        "main.s",
         "-I${workspaceFolder}/include"
       ],
       "stopAtEntry": true,

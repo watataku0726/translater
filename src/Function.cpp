@@ -5,7 +5,8 @@
 #include <cassert>
 
 Function::Function(int pos, const std::string& functionLabel) 
-    :mStart(pos), mEnd(pos), mNumLabels(0)
+    :mStart(pos), mEnd(pos), mNumLabels(0), mMainStackSize(0)
+    ,mNumber(0), mNumArgStacks(0), mCurArgStackSize(0), WriteArgStack(false)
 {
     mLabels.clear();
     if(functionLabel.substr(0, 2) != "_Z"){

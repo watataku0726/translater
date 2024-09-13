@@ -8,32 +8,54 @@
 _Z6bitcntjj:                            # @_Z6bitcntjj
 
 # %bb.0:                                # %entry
-	tcg_gen_movi_tl(r0, 0);
-	tcg_gen_brcondi_tl(TCG_COND_EQ, a0, 0, label_BB0_2);
+	?stki	sp, sp, 12
+	?st	8(sp), a0
+	?st	4(sp), a1
+	tcg_gen_movi_tl(tmp1, 0);
+	?st	0(sp), tmp1
 	?goto	label_BB0_1
-label_BB0_1:                            # %for.body.preheader
-	tcg_gen_movi_tl(r0, 0);
-	?goto	label_BB0_4
-label_BB0_4:                            # %for.body
+label_BB0_1:                            # %for.cond
                                         # =>This Inner Loop Header: Depth=1
-	tcg_gen_andi_tl(tmp1, a0, 1);
-	tcg_gen_add_tl(r0, r0, tmp1);
-	tcg_gen_shri_tl(a0, a0, 1);
-	tcg_gen_brcondi_tl(TCG_COND_EQ, a0, 0, label_BB0_2);
-	?goto	label_BB0_4
-label_BB0_2:                            # %for.cond1.preheader
-	tcg_gen_brcondi_tl(TCG_COND_EQ, a1, 0, label_BB0_6);
+	?ld	tmp1, 8(sp)
+	tcg_gen_brcondi_tl(TCG_COND_EQ, tmp1, 0, label_BB0_4);
+	?goto	label_BB0_2
+label_BB0_2:                            # %for.body
+                                        #   in Loop: Header=BB0_1 Depth=1
+	?ld	tmp1, 8(sp)
+	tcg_gen_andi_tl(tmp1, tmp1, 1);
+	?ld	tmp2, 0(sp)
+	tcg_gen_add_tl(tmp1, tmp2, tmp1);
+	?st	0(sp), tmp1
 	?goto	label_BB0_3
-label_BB0_3:                            # %for.body3.preheader
+label_BB0_3:                            # %for.inc
+                                        #   in Loop: Header=BB0_1 Depth=1
+	?ld	tmp1, 8(sp)
+	tcg_gen_shri_tl(tmp1, tmp1, 1);
+	?st	8(sp), tmp1
+	?goto	label_BB0_1
+label_BB0_4:                            # %for.end
 	?goto	label_BB0_5
-label_BB0_5:                            # %for.body3
+label_BB0_5:                            # %for.cond1
                                         # =>This Inner Loop Header: Depth=1
-	tcg_gen_andi_tl(tmp1, a1, 1);
-	tcg_gen_add_tl(r0, r0, tmp1);
-	tcg_gen_shri_tl(a1, a1, 1);
-	tcg_gen_brcondi_tl(TCG_COND_NE, a1, 0, label_BB0_5);
+	?ld	tmp1, 4(sp)
+	tcg_gen_brcondi_tl(TCG_COND_EQ, tmp1, 0, label_BB0_8);
 	?goto	label_BB0_6
-label_BB0_6:                            # %for.end8
+label_BB0_6:                            # %for.body3
+                                        #   in Loop: Header=BB0_5 Depth=1
+	?ld	tmp1, 4(sp)
+	tcg_gen_andi_tl(tmp1, tmp1, 1);
+	?ld	tmp2, 0(sp)
+	tcg_gen_add_tl(tmp1, tmp2, tmp1);
+	?st	0(sp), tmp1
+	?goto	label_BB0_7
+label_BB0_7:                            # %for.inc6
+                                        #   in Loop: Header=BB0_5 Depth=1
+	?ld	tmp1, 4(sp)
+	tcg_gen_shri_tl(tmp1, tmp1, 1);
+	?st	4(sp), tmp1
+	?goto	label_BB0_5
+label_BB0_8:                            # %for.end8
+	?ld	r0, 0(sp)
 	?ret
 $func_end0:
 	.size	_Z6bitcntjj, ($func_end0)-_Z6bitcntjj
