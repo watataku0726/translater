@@ -33,6 +33,7 @@ public:
     int GetCurArgStackSize() const { return mCurArgStackSize; }
     bool IsArgStackWriten() const { return WriteArgStack; }
     const std::string& GetName() const { return mFunctionName; }
+    const std::vector<Label*>& GetLabels() const { return mLabels; }
 private:
     std::string mFunctionName;
     std::vector<Label*> mLabels;
