@@ -4,6 +4,12 @@
 
 #include "cassert"
 
+
+/*======================================*/
+/*             PUBLIC                   */
+/*======================================*/
+
+
 Translater::Translater(const std::string& filename, const Option* option) 
     :mFileName(filename), mOption(option), mStackFlag(false)
 {
@@ -29,6 +35,82 @@ bool Translater::Initialize() {
     return true;
 }
 
+void Translater::RunLoop() {
+#if(0)
+    int i = 0;
+    for( std::string str : mContents) {
+        //if(str[0] == '?')
+            std::cout << i++ << " : " << str << std::endl;
+    }
+
+    for(Function *f : mFunctions) {
+        std::cout << f->GetStart() << " " << f->GetEnd() << " " << f->GetNumArgs() << " "  << f->GetNumLabels() << " " << f->GetMyNumber() << std::endl;
+    }
+
+    for(auto iter = mGlobalRegisters.begin(); iter != mGlobalRegisters.end(); ++iter) {
+        std::cout << iter->first << " " << iter->second << std::endl;
+    }
+
+#else
+    std::stringstream ss;
+
+    Prologue(ss);
+
+    int pos = 0, function_number = 0;
+    bool stack_flag = false;
+    for(std::string& line : mContents) {
+        if(line[0] != '?' && line[0] != '!') {
+            ss << "\t" << line << "\n";
+            ++pos;
+            line.clear();
+            continue;
+        } else if(line[0] == '!') {
+            NormalStatement(pos, ss, function_number);
+            ++pos;
+            line.clear();
+            continue;
+        }
+        std::string opcode;
+        GetSubString(line.substr(1), opcode, '\t');
+
+        if(opcode == "goto")
+            GotoStatement(pos, ss, function_number);
+        else if(opcode == "ld")
+            LoadStatement(pos, ss, function_number);
+        else if(opcode == "st")
+            StoreStatement(pos, ss, function_number);
+        else if(opcode == "assign")
+            AssignStatement(pos, ss, function_number);
+        else if(opcode == "stki")
+            StackStatement(pos, ss, function_number);
+        else if(opcode == "start")
+            StartStatement(pos, ss, function_number);
+        else if(opcode == "frmi")
+            FrameStatement(pos, ss, function_number);
+        else if(opcode == "ret")
+            ReturnStatement(pos, ss, function_number);
+        else if(opcode == "call")
+            CallStatement(pos, ss, function_number);
+        ++pos;
+        line.clear();
+    }
+    mContents.clear();
+
+    Epilogue(ss);
+
+    //std::cout << ss.str() << std::endl;
+
+    std::ofstream file("outpu.c.inc");
+    file << ss.rdbuf();
+
+#endif
+    
+}
+
+/*======================================*/
+/*             Helpers                  */
+/*======================================*/
+
 bool Translater::GetSubString(const std::string& line, std::string &name, const char delimiter) {
     name.clear();
     for(size_t i = 0; i <= line.size(); ++i) {
@@ -40,6 +122,68 @@ bool Translater::GetSubString(const std::string& line, std::string &name, const 
     name.clear();
     return false;
 }
+
+int Translater::GetRegNumber(const std::string& reg) {
+    int idx = -1;
+    if(reg[0] == 't' && reg[1] == 'm' && reg[2] == 'p') {
+        idx = atol(reg.c_str() + 3) - 1;
+    } else if(reg[0] == 'a') {
+        idx = atol(reg.c_str() + 1) + NUMBER_OF_TMP_REGISTERS;
+    } else if(reg[0] == 'r') {
+        idx = MAX_GLOBAL_ASSIGNED_REIGSTERS - 1;
+    }
+
+    return idx;
+}
+
+void Translater::FreeAssign(int reg_number) {
+    if(reg_number >= 0 && reg_number < MAX_GLOBAL_ASSIGNED_REIGSTERS) {
+        mAssignedRegisters[reg_number].assignState = Register::AssignState::None;
+    }
+}
+
+bool Translater::IsAssignedGlobal(int reg_number) {
+    bool ret = false;
+    if(reg_number >= 0 && reg_number < MAX_GLOBAL_ASSIGNED_REIGSTERS) {
+        ret = (mAssignedRegisters[reg_number].assignState == Register::AssignState::Global);
+    }
+    return ret;
+}
+
+bool Translater::IsAssignedFrame(int reg_number) {
+    bool ret = false;
+    if(reg_number >= 0 && reg_number < MAX_GLOBAL_ASSIGNED_REIGSTERS) {
+        ret = (mAssignedRegisters[reg_number].assignState == Register::AssignState::Frame);
+    }
+    return ret;
+}
+
+void Translater::AssignGlobal(int reg_number, const std::string& global_register_name, const std::string& index_reg_name) {
+    if(reg_number >= 0 && reg_number < MAX_GLOBAL_ASSIGNED_REIGSTERS) {
+        auto iter = mGlobalRegisters.find(global_register_name);
+        if(iter != mGlobalRegisters.end()) {
+            mAssignedRegisters[reg_number].assignState = Register::AssignState::Global;
+            mAssignedRegisters[reg_number].globalRegister = global_register_name;
+            mAssignedRegisters[reg_number].indexglobalRegister = index_reg_name; 
+            mAssignedRegisters[reg_number].arraySize = iter->second;
+        }
+    }
+}
+
+void Translater::AssignFrame(int reg_number, int index, int size, const std::string& index_reg_name) {
+    if(reg_number >= 0 && reg_number < MAX_GLOBAL_ASSIGNED_REIGSTERS) {
+        mAssignedRegisters[reg_number].assignState = Register::AssignState::Frame;
+        mAssignedRegisters[reg_number].arraySize = size;
+        mAssignedRegisters[reg_number].frameIdx = index;
+        mAssignedRegisters[reg_number].indexglobalRegister = index_reg_name;
+    }
+}
+
+
+
+/*======================================*/
+/*             ANALYZE                  */
+/*======================================*/
 
 bool Translater::Analyze(std::stringstream& ss) {
     std::string line;
@@ -172,8 +316,8 @@ bool Translater::Analyze_in_InObject(const std::string& line, State& state) {
         GetSubString(line.c_str() + offset, name, ',');
         offset += name.size() + 2;
         GetSubString(line.c_str() + offset, imm, '\0');
-        bool isArray = atol(imm.c_str()) >> p2align != 1;
-        mGlobalRegisters.emplace(name, isArray);
+        int size = atol(imm.c_str()) >> p2align;
+        mGlobalRegisters.emplace(name, size);
         state == State::OutofFunction;
         p2align = 2;
     }
@@ -181,63 +325,10 @@ bool Translater::Analyze_in_InObject(const std::string& line, State& state) {
     return true;
 }
 
-void Translater::RunLoop() {
-#if(0)
-    int i = 0;
-    for( std::string str : mContents) {
-        //if(str[0] == '?')
-            std::cout << i++ << " : " << str << std::endl;
-    }
 
-    for(Function *f : mFunctions) {
-        std::cout << f->GetStart() << " " << f->GetEnd() << " " << f->GetNumArgs() << " "  << f->GetNumLabels() << " " << f->GetMyNumber() << std::endl;
-    }
-
-    for(auto iter = mGlobalRegisters.begin(); iter != mGlobalRegisters.end(); ++iter) {
-        std::cout << iter->first << " " << (iter->second ? "true" : "false") << std::endl;
-    }
-
-#else
-    std::stringstream ss;
-    int pos = 0, function_number = 0;
-    bool stack_flag = false;
-    for(std::string line : mContents) {
-        if(line[0] != '?' && line[0] != '!') {
-            ss << "\t" << line << "\n";
-            ++pos;
-            continue;
-        } else if(line[0] == '!') {
-            NormalStatement(pos, ss, function_number);
-            ++pos;
-            continue;
-        }
-        std::string opcode;
-        GetSubString(line.substr(1), opcode, '\t');
-
-        if(opcode == "goto")
-            GotoStatement(pos, ss, function_number);
-        else if(opcode == "ld")
-            LoadStatement(pos, ss, function_number);
-        else if(opcode == "st")
-            StoreStatement(pos, ss, function_number);
-        else if(opcode == "assign")
-            AssignStatement(pos, ss, function_number);
-        else if(opcode == "stki")
-            StackStatement(pos, ss, function_number);
-        else if(opcode == "start")
-            StartStatement(pos, ss, function_number);
-        //else if(opcode == "end")
-        //    EndStatement(pos, ss, function_number);
-        else if(opcode == "ret")
-            ReturnStatement(pos, ss, function_number);
-        else if(opcode == "call")
-            CallStatement(pos, ss, function_number);
-        ++pos;
-    }
-    std::cout << ss.str() << std::endl;
-#endif
-    
-}
+/*======================================*/
+/*             STATEMENTS               */
+/*======================================*/
 
 void Translater::NormalStatement(int pos, std::stringstream& ss,  int& function_number) {
     std::string opcode, rd;
@@ -256,65 +347,45 @@ void Translater::NormalStatement(int pos, std::stringstream& ss,  int& function_
 
         int rs1_number = GetRegNumber(rs1);
         int rs2_number = GetRegNumber(rs2);
-        bool isrs1Assigned = IsAssignedGlobal(rs1_number);
-        bool isrs2Assigned = IsAssignedGlobal(rs2_number);
-        if(!isrs1Assigned && !isrs2Assigned) {
-            FreeAssign(rd_number);
-            ss << "\ttcg_gen_" << opcode << "_tl(" << rd << ", " << rs1 <<  ", " << rs2 << ");\n";
-        } else if(isrs1Assigned && !isrs2Assigned) {
-            AssignGlobal(rd_number, mGlobalAssignedRegisters[rs1_number].globalRegister, rs2);
-            ss << "\t/*Assign " << rd << " to " << mGlobalAssignedRegisters[rs1_number].globalRegister << "[" << rs2 << "]" << ".*/\n";
-            
-        } else if(!isrs1Assigned && isrs2Assigned) {
-            AssignGlobal(rd_number, mGlobalAssignedRegisters[rs2_number].globalRegister, rs1);
-            ss << "\t/*Assign " << rd << " to " << mGlobalAssignedRegisters[rs2_number].globalRegister << "[" << rs1 << "]" << ".*/\n";
-        } else {
+        bool isrs1AssignedGlobal = IsAssignedGlobal(rs1_number);
+        bool isrs2AssignedGlobal = IsAssignedGlobal(rs2_number);
+        if(isrs1AssignedGlobal && isrs2AssignedGlobal) {
             ss << "/*" << pos <<": add true true*/\n";
+        } else if(isrs1AssignedGlobal && !isrs2AssignedGlobal) {
+            const Register& reg = mAssignedRegisters[rs1_number];
+            AssignGlobal(rd_number, reg.globalRegister, rs2);
+            ss << "\t/*Assign " << reg.globalRegister << "[" << rs2 << "]" << " to " << rd << ".*/\n";
+            
+        } else if(!isrs1AssignedGlobal && isrs2AssignedGlobal) {
+            const Register& reg = mAssignedRegisters[rs2_number];
+            AssignGlobal(rd_number, reg.globalRegister, rs1);
+            ss << "\t/*Assign "  << reg.globalRegister << "[" << rs1 << "]" << " to " << rd << ".*/\n";
+        } else {
+            bool isrs1AssignedFrame = IsAssignedFrame(rs1_number);
+            bool isrs2AssignedFrame = IsAssignedFrame(rs2_number);
+            if(!isrs1AssignedFrame && !isrs2AssignedFrame) {
+                FreeAssign(rd_number);
+                ss << "\ttcg_gen_" << opcode << "_tl(" << rd << ", " << rs1 <<  ", " << rs2 << ");\n";
+            } else if(isrs1AssignedFrame && !isrs2AssignedFrame) {
+                const Register& reg = mAssignedRegisters[rs1_number];
+                const Function *f = mFunctions[function_number];
+                AssignFrame(rd_number, reg.frameIdx, f->GetMainStackSize(), rs2);
+                ss << "\t/*Assign sp[" << reg.frameIdx << " + " << rs2 << "] to " << rd << ".*/\n";
+            } else if(!isrs1AssignedFrame && isrs2AssignedFrame) {
+                const Register& reg = mAssignedRegisters[rs2_number];
+                const Function *f = mFunctions[function_number];
+                AssignFrame(rd_number, reg.frameIdx, f->GetMainStackSize(), rs1);
+                ss << "\t/*Assign sp[" << reg.frameIdx << " + " << rs1 << "] to " << rd << ".*/\n";
+            } else {
+                ss << "/*" << pos <<": add true true*/\n";
+            }
+            
         }
     } else {
         FreeAssign(rd_number);
         std::string ops;
         GetSubString(line.c_str() + offset, ops, '.');
         ss << "\ttcg_gen_" << opcode << "_tl(" << ops << ");\n";
-    }
-}
-
-int Translater::GetRegNumber(const std::string& reg) {
-    int idx = -1;
-    if(reg[0] == 't' && reg[1] == 'm' && reg[2] == 'p') {
-        idx = atol(reg.c_str() + 3) - 1;
-    } else if(reg[0] == 'a') {
-        idx = atol(reg.c_str() + 1) + NUMBER_OF_TMP_REGISTERS;
-    } else if(reg[0] == 'r') {
-        idx = MAX_GLOBAL_ASSIGNED_REIGSTERS - 1;
-    }
-
-    return idx;
-}
-
-void Translater::FreeAssign(int reg_number) {
-    if(reg_number >= 0 && reg_number < MAX_GLOBAL_ASSIGNED_REIGSTERS) {
-        mGlobalAssignedRegisters[reg_number].isAssigned = false;
-    }
-}
-
-bool Translater::IsAssignedGlobal(int reg_number) {
-    bool ret = false;
-    if(reg_number >= 0 && reg_number < MAX_GLOBAL_ASSIGNED_REIGSTERS) {
-        ret = mGlobalAssignedRegisters[reg_number].isAssigned;
-    }
-    return ret;
-}
-
-void Translater::AssignGlobal(int reg_number, const std::string& global_register_name, const std::string& index_reg_name) {
-    if(reg_number >= 0 && reg_number < MAX_GLOBAL_ASSIGNED_REIGSTERS) {
-        auto iter = mGlobalRegisters.find(global_register_name);
-        if(iter != mGlobalRegisters.end()) {
-            mGlobalAssignedRegisters[reg_number].isAssigned = true;
-            mGlobalAssignedRegisters[reg_number].globalRegister = global_register_name;
-            mGlobalAssignedRegisters[reg_number].indexglobalRegister = index_reg_name; 
-            mGlobalAssignedRegisters[reg_number].isArray = iter->second;
-        }
     }
 }
 
@@ -349,12 +420,14 @@ void Translater::StartStatement(int pos, std::stringstream& ss,  int& function_n
     ss << "\n";
 }
 
+#if(0)
 void Translater::EndStatement(int pos, std::stringstream& ss,  int& function_number) {
 #if !defined(NDEBUG) && (0)
     std::cout << pos << " : " << "end" << std::endl;
 #endif
     mStackFlag = false;
 }
+#endif
 
 void Translater::GotoStatement(int pos, std::stringstream& ss,  int& function_number) {
 #if !defined(NDEBUG) && (0)
@@ -378,13 +451,13 @@ void Translater::LoadStatement(int pos, std::stringstream& ss,  int& function_nu
     offset += bitshift.size() + 2;
     GetSubString(line.c_str() + offset, op1, ',');
 
-    if(op1[0] == 'r' && op1[1] == 'a' && op1[2] == ' ')
+    if(op1[0] == 'r' && op1[1] == 'a' && op1[2] == '\0')
         return;
     offset += op1.size() + 2;
     GetSubString(line.c_str() + offset, imm, '(');
     offset += imm.size() + 1;
     GetSubString(line.c_str() + offset, op2, ')');
-    int idx = atol(imm.c_str()) / WORDSIZE;
+    int idx = atol(imm.c_str()) >> WORDSIZE_SHIFT;
     const Function* func = mFunctions[function_number];
     if(op2 == "sp") {
         if(func->IsArgStackWriten()) {
@@ -406,19 +479,41 @@ void Translater::LoadStatement(int pos, std::stringstream& ss,  int& function_nu
         }
     } else {
         int op2_number = GetRegNumber(op2);
-        if(idx) {
-            ss << "\ttcg_gen_mov_tl(" << op1 << ", " << mGlobalAssignedRegisters[op2_number].globalRegister << "[" << idx <<"]);\n";
-        } else {
-            if(mGlobalAssignedRegisters[op2_number].isArray) {
-                ss  << "\ttcg_gen_srai_tl(" << mGlobalAssignedRegisters[op2_number].indexglobalRegister << ", "
-                    << mGlobalAssignedRegisters[op2_number].indexglobalRegister << ", 2);\n" 
-                    << "\tLOAD_ARRAY(" << op1 << ", " << mGlobalAssignedRegisters[op2_number].globalRegister << ", " 
-                    << mGlobalAssignedRegisters[op2_number].indexglobalRegister << ");\n"
-                    << "\ttcg_gen_shli_tl(" << mGlobalAssignedRegisters[op2_number].indexglobalRegister << ", "
-                    << mGlobalAssignedRegisters[op2_number].indexglobalRegister << ", 2);\n";
+        const Register& reg = mAssignedRegisters[op2_number];
+        if(reg.assignState == Register::AssignState::Global) {
+            if(idx) {
+                ss << "\ttcg_gen_mov_tl(" << op1 << ", " << reg.globalRegister << "[" << idx <<"]);\n";
             } else {
-                ss << "\ttcg_gen_mov_tl(" << op1 << ", " << mGlobalAssignedRegisters[op2_number].globalRegister << ");\n";
+                if(reg.arraySize != 1) {
+                    ss  << "\n\t/*ARRAY ACCESS*/\n"
+                        << "\ttcg_gen_srai_tl(" << reg.indexglobalRegister << ", "
+                        << reg.indexglobalRegister << ", " << WORDSIZE_SHIFT << ");\n" 
+                        << "\tLOAD_ARRAY(ctx, " << op1 << ", " << reg.globalRegister << ", "  << reg.arraySize << ", "
+                        << reg.indexglobalRegister << ");\n";
+
+                    if(op1 != reg.indexglobalRegister)
+                        ss  << "\ttcg_gen_shli_tl(" << reg.indexglobalRegister << ", "
+                            << reg.indexglobalRegister << ", " << WORDSIZE_SHIFT << ");\n";
+                    ss << "\t/*End ARRAY ACCESS*/\n\n";
+                } else {
+                    ss << "\ttcg_gen_mov_tl(" << op1 << ", " << reg.globalRegister << ");\n";
+                }
             }
+        } else if(reg.assignState == Register::AssignState::Frame) {
+            bool hasindexreg = (reg.indexglobalRegister != "");
+            ss  << "\n\t/*STACK POINTER ACCESS*/\n";
+            if(hasindexreg)
+                ss  <<"\ttcg_gen_srai_tl(" << reg.indexglobalRegister << ", " 
+                    << reg.indexglobalRegister << ", " << WORDSIZE_SHIFT <<");\n";
+            ss  << "\tLOAD_FRAME_ARRAY(ctx, " << op1 << ", " << "sp" << ", " << reg.arraySize << ", " << reg.frameIdx;
+            if(hasindexreg)
+                ss << ", " << reg.indexglobalRegister;
+            ss  << ");\n";
+
+            if(op1 != reg.indexglobalRegister) 
+                ss  <<"\ttcg_gen_shli_tl(" << reg.indexglobalRegister << ", " 
+                    << reg.indexglobalRegister << ", " << WORDSIZE_SHIFT <<");\n";
+            ss  << "\t/*End STACK POINTER ACCESS*/\n\n";
         }
     }
     FreeAssign(GetRegNumber(op1));
@@ -443,7 +538,7 @@ void Translater::StoreStatement(int pos, std::stringstream& ss,  int& function_n
     if(op2[0] == 'r' && op2[1] == 'a' && op2[2] == ' ')
         return;
 
-    int idx = atol(imm.c_str()) / WORDSIZE;
+    int idx = atol(imm.c_str()) >> WORDSIZE_SHIFT;
     const Function* func = mFunctions[function_number];
     if(op1 == "sp") {
         if(func->IsArgStackWriten()) {
@@ -464,19 +559,37 @@ void Translater::StoreStatement(int pos, std::stringstream& ss,  int& function_n
         }
     } else {
         int op1_number = GetRegNumber(op1);
-        if(idx) {
-            ss << "\ttcg_gen_mov_tl(" << mGlobalAssignedRegisters[op1_number].globalRegister << "[" << idx <<"], " << op2 << ");\n";
-        } else {
-            if(mGlobalAssignedRegisters[op1_number].isArray) {
-                ss  << "\ttcg_gen_sari_tl(" << mGlobalAssignedRegisters[op1_number].indexglobalRegister << ", "
-                    << mGlobalAssignedRegisters[op1_number].indexglobalRegister << ", 2);\n" 
-                    << "\tSTORE_ARRAY(" << op1 << ", " << mGlobalAssignedRegisters[op1_number].globalRegister << ", " 
-                    << mGlobalAssignedRegisters[op1_number].indexglobalRegister << ");\n"
-                    << "\ttcg_gen_shli_tl(" << mGlobalAssignedRegisters[op1_number].indexglobalRegister << ", "
-                    << mGlobalAssignedRegisters[op1_number].indexglobalRegister << ", 2);\n" ;
+        const Register& reg = mAssignedRegisters[op1_number];
+        if(reg.assignState == Register::AssignState::Global) {
+            if(idx) {
+                ss << "\ttcg_gen_mov_tl(" << reg.globalRegister << "[" << idx <<"], " << op2 << ");\n";
             } else {
-                ss << "\ttcg_gen_mov_tl(" << mGlobalAssignedRegisters[op1_number].globalRegister << ", " << op2 <<  ");\n";
+                if(reg.arraySize != 1) {
+                    ss  << "\n\t/*ARRAY ACCESS*/\n"
+                        << "\ttcg_gen_sari_tl(" << reg.indexglobalRegister << ", "
+                        << reg.indexglobalRegister << ", " << WORDSIZE_SHIFT << ");\n" 
+                        << "\tSTORE_ARRAY(ctx, " << reg.globalRegister << ", "  << reg.arraySize << ", "
+                        << reg.indexglobalRegister << ", " << op2 <<  ");\n"
+                        << "\ttcg_gen_shli_tl(" << reg.indexglobalRegister << ", "
+                        << reg.indexglobalRegister << ", " << WORDSIZE_SHIFT << ");\n" ;
+                    ss  << "\t/*End ARRAY ACCESS*/\n\n";
+                } else {
+                    ss << "\ttcg_gen_mov_tl(" << reg.globalRegister << ", " << op2 <<  ");\n";
+                }
             }
+        } else if(reg.assignState == Register::AssignState::Frame) {
+            bool hasindexreg = (reg.indexglobalRegister != "");
+            ss  << "\n\t/*STACK POINTER ACCESS*/\n";
+            if(hasindexreg)
+                ss  <<"\ttcg_gen_srai_tl(" << reg.indexglobalRegister << ", " 
+                    << reg.indexglobalRegister << ", " << WORDSIZE_SHIFT <<");\n";
+            ss  << "\tSTORE_FRAME_ARRAY(ctx, " <<"sp" << ", " << reg.arraySize << ", " << reg.frameIdx;
+            if(hasindexreg)
+                ss << ", " << reg.indexglobalRegister;
+            ss  << ", " << op2 << ");\n"
+                <<"\ttcg_gen_shli_tl(" << reg.indexglobalRegister << ", " 
+                << reg.indexglobalRegister << ", " << WORDSIZE_SHIFT <<");\n"
+                << "\t/*End STACK POINTER ACCESS*/\n\n";
         }
     }
 }
@@ -494,7 +607,7 @@ void Translater::AssignStatement(int pos, std::stringstream& ss,  int& function_
     GetSubString(line.c_str() + offset, op, '.');
     int rd_number = GetRegNumber(rd);
     AssignGlobal(rd_number, op);
-    ss << "\t/*Assign " << rd << " to " << op << ".*/\n"; 
+    ss << "\t/*Assign " << op << " to " << rd << ".*/\n"; 
 }
 
 void Translater::StackStatement(int pos, std::stringstream& ss,  int& function_number) {
@@ -513,8 +626,8 @@ void Translater::StackStatement(int pos, std::stringstream& ss,  int& function_n
             mFunctions[function_number]->SetMainStackSize(size); 
             mStackFlag = false;
         }
-        ss  << "\tTCGv " << sp <<"[" << size << "];\n"
-            << "\tfor(int i = 0; i < " << size << "; ++i){ " << sp <<"[i] = tcg_temp_local_new(); }\n\n";
+        ss  << "\tTCGv " << sp <<"[" << size << "]; "
+            << "for(int i = 0; i < " << size << "; ++i){ " << sp <<"[i] = tcg_temp_local_new(); }\n\n";
     }
 }
 
@@ -532,5 +645,180 @@ void Translater::CallStatement(int pos, std::stringstream& ss,  int& function_nu
 #endif
     mStackFlag = false;
     mFunctions[function_number]->NotAbletoWriteArgStack();
-    ss << "call\n";
+    std::string functionLabel;
+    GetSubString(mContents[pos].c_str() + 6, functionLabel, '.');
+
+    if(functionLabel[0] != '_' || functionLabel[1] != 'Z')
+        std::cerr << "UnKnown Function Format : " << functionLabel << std::endl;
+    else {
+        int idx = 2;
+        while('0' <= functionLabel[idx] && functionLabel[idx] <= '9') {
+            ++idx;
+        }
+        assert(idx > 2);
+        int len = atol(functionLabel.substr(2, idx - 2).c_str());
+        int numArgs = functionLabel.size() - (idx + len);
+
+        ss << "\t" <<  functionLabel.substr(idx, len) << "(ctx, r0";
+
+        for(int i = 0, e = numArgs > NUMBER_OF_A_REGISTERS ? NUMBER_OF_A_REGISTERS : numArgs ; i < e; ++i) { 
+            ss << ", a" << i;
+        }
+        if(numArgs > NUMBER_OF_A_REGISTERS)
+            ss << ", arg_sp" << mFunctions[function_number]->GetNumArgStacks();
+        ss << ");\n";
+    }
+
+}
+
+void Translater::FrameStatement(int pos ,std::stringstream& ss, int& function_number) {
+#if !defined(NDEBUG) && (0)
+    std::cout << pos << " : " << "frame" << std::endl;
+#endif
+    mStackFlag = false;
+    const std::string& line = mContents[pos];
+    std::string rd, sp, imm;
+    int offset = 6;
+    GetSubString(line.c_str() + offset, rd, ',');
+    offset += rd.size() + 2;
+    GetSubString(line.c_str() + offset, sp, ',');
+    offset += sp.size() + 2;
+    GetSubString(line.c_str() + offset, imm, '.');
+    if(sp != "sp")
+        std::cerr << "Unknown Format : " << pos << " : " << line << std::endl;
+    int idx = atol(imm.c_str()) >> WORDSIZE_SHIFT;
+    const Function *f = mFunctions[function_number];
+    AssignFrame(GetRegNumber(rd), idx, f->GetMainStackSize());
+    
+    ss << "\t/*Assign sp[" << idx << "] to " << rd << ".*/\n";
+}
+
+
+/*======================================*/
+/*       PROLOUGE EPILOGUE              */
+/*======================================*/
+
+void Translater::Prologue(std::stringstream& ss) {
+    ss  << "/*=========================================================================================*/\n"
+        << "/*                          This file was generated by \"translater\".                       */\n"
+        << "/*=========================================================================================*/\n\n";
+
+    ss  << "static void LOAD_ARRAY(DisasContext *ctx, TCGv rd, TCGv *array, int length, TCGv index) {\n"
+        << "\tTCGLabel *local_labels[length];\n"
+        << "\tfor(int i = 0; i < length; ++i) { local_labels[i] = gen_new_label(); }\n" 
+        << "\tTCGLabel *local_end = gen_new_label();\n"
+        << "\tfor(int i = 0; i < len; ++i) {\n"
+        << "\t\ttcg_gen_brcondi_tl(TCG_COND_EQ, index, i, local_labels[i]);\n"
+        << "\t}\n"
+        << "\ttcg_gen_brcondi_tl(TCG_COND_EQ, ctx->zero, 0x0, local_end);\n"
+        << "\tfor(int i = 0; i < length; ++i) {\n"
+        << "\t\tgen_set_label(local_labels[i]);\n"
+        << "\t\ttcg_gen_mov_tl(rd, array[i]);\n"
+        << "\t\ttcg_gen_brcondi_tl(TCG_COND_EQ, ctx->zero, 0x0, local_end);\n"
+        << "\t}\n"
+        << "};\n\n";
+
+    ss  << "static void STORE_ARRAY(DisasContext *ctx, TCGv *array, int length, TCGv index, TCGv rs) {\n"
+        << "\tTCGLabel *local_labels[length];\n"
+        << "\tfor(int i = 0; i < length; ++i) { local_labels[i] = gen_new_label(); }\n" 
+        << "\tTCGLabel *local_end = gen_new_label();\n"
+        << "\tfor(int i = 0; i < len; ++i) {\n"
+        << "\t\ttcg_gen_brcondi_tl(TCG_COND_EQ, index, i, local_labels[i]);\n"
+        << "\t}\n"
+        << "\ttcg_gen_brcondi_tl(TCG_COND_EQ, ctx->zero, 0x0, local_end);\n"
+        << "\tfor(int i = 0; i < length; ++i) {\n"
+        << "\t\tgen_set_label(local_labels[i]);\n"
+        << "\t\ttcg_gen_mov_tl(array[i], rs);\n"
+        << "\t\ttcg_gen_brcondi_tl(TCG_COND_EQ, ctx->zero, 0x0, local_end);\n"
+        << "\t}\n"
+        << "};\n\n";
+
+    ss  << "static void LOAD_FRAME_ARRAY(DisasContext *ctx, TCGv rd, TCGv *array, int length, int offset, TCGv index) {\n"
+        << "\tTCGLabel *local_labels[length];\n"
+        << "\tfor(int i = 0; i < length; ++i) { local_labels[i] = gen_new_label(); }\n" 
+        << "\tTCGLabel *local_end = gen_new_label();\n"
+        << "\tfor(int i = 0; i < len; ++i) {\n"
+        << "\t\ttcg_gen_brcondi_tl(TCG_COND_EQ, index, i, local_labels[i]);\n"
+        << "\t}\n"
+        << "\ttcg_gen_brcondi_tl(TCG_COND_EQ, ctx->zero, 0x0, local_end);\n"
+        << "\tfor(int i = 0; i < length; ++i) {\n"
+        << "\t\tgen_set_label(local_labels[i]);\n"
+        << "\t\ttcg_gen_mov_tl(rd, array[i + offset]);\n"
+        << "\t\ttcg_gen_brcondi_tl(TCG_COND_EQ, ctx->zero, 0x0, local_end);\n"
+        << "\t}\n"
+        << "};\n\n";
+
+    ss  << "static void STORE_FRAME_ARRAY(DisasContext *ctx, TCGv *array, int length, int offset, TCGv index, TCGv rs) {\n"
+        << "\tTCGLabel *local_labels[length];\n"
+        << "\tfor(int i = 0; i < length; ++i) { local_labels[i] = gen_new_label(); }\n" 
+        << "\tTCGLabel *local_end = gen_new_label();\n"
+        << "\tfor(int i = 0; i < len; ++i) {\n"
+        << "\t\ttcg_gen_brcondi_tl(TCG_COND_EQ, index, i, local_labels[i]);\n"
+        << "\t}\n"
+        << "\ttcg_gen_brcondi_tl(TCG_COND_EQ, ctx->zero, 0x0, local_end);\n"
+        << "\tfor(int i = 0; i < length; ++i) {\n"
+        << "\t\tgen_set_label(local_labels[i]);\n"
+        << "\t\ttcg_gen_mov_tl(array[i + offset], rs);\n"
+        << "\t\ttcg_gen_brcondi_tl(TCG_COND_EQ, ctx->zero, 0x0, local_end);\n"
+        << "\t}\n"
+        << "};\n\n";
+
+    int numGlobals = mGlobalRegisters.size();
+    if(numGlobals > 0) {
+        ss << "static TCGv";
+        int i = 1;
+        for(auto iter : mGlobalRegisters) {
+            ss << " " << iter.first;
+            if(iter.second != 1)
+                ss << "[" << iter.second << "]";
+            ss << (i < numGlobals ? ',' : ';' );
+            ++i;
+        }
+        ss  << "\n";
+
+        for(auto iter : mGlobalRegisters) {
+            if(iter.second != 1) {
+                int digit = std::to_string(iter.second).length();
+                ss << "static const char " << iter.first << "_name[][" << (iter.first.size() + digit + 2) <<"] = {";
+                for(int i = 0; i < iter.second; ++i) {
+                    ss << "\"" << iter.first << "_" << i << "\", ";
+                }
+                ss << "};\n";
+            }
+        }
+
+        ss  << "\nstatic void riscv_" << "" << "_translate_init(void) {\n";
+        for(auto iter : mGlobalRegisters) {
+            if(iter.second == 1) {
+                ss  << "\t" << iter.first << " = tcg_global_mem_new(tcg_env, offsetof(CPURISCVState, "
+                    << iter.first << "), \"" << iter.first <<"\");\n";
+            } else {
+                ss  << "\tfor(int i = 0; i < " << iter.second << "; ++i) {\n"
+                    << "\t\t" << iter.first << "[i] = tcg_global_mem_new(tcg_env, offsetof(CPURISCVState,"
+                    << iter.first << "[i]), " << iter.first << "_name[i]);\n"
+                    << "\t}\n";
+            }
+        }
+        ss  <<"}\n" ;
+
+    }
+
+    ss << "\n";
+
+    for(auto f : mFunctions) {
+        ss << "static void " << f->GetName() << "(DisasContext *ctx, TCGv r0";
+        for(int i = 0, e = f->GetNumArgs() > NUMBER_OF_A_REGISTERS ? NUMBER_OF_A_REGISTERS : f->GetNumArgs(); i < e; ++i)
+            ss << ", TCGv a" << i;
+            
+        if (f->GetNumArgs() > NUMBER_OF_A_REGISTERS) {
+            ss << ", TCGV arg_sp[" << f->GetNumArgs() - NUMBER_OF_A_REGISTERS << "]";
+        } 
+        ss << ");\n";
+    }
+
+
+}
+
+void Translater::Epilogue(std::stringstream& ss) {
+
 }
