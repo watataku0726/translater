@@ -12,6 +12,7 @@
                 "-g",
                 "-I${workspaceFolder}/include",
                 "${workspaceFolder}/src/*.cpp",
+                "${workspaceFolder}/src/*.cc",
                 "-o",
                 "${workspaceFolder}/bin/${config:programName}_d"
             ],
@@ -32,6 +33,7 @@
                 "-DNDEBUG",
                 "-I${workspaceFolder}/include",
                 "${workspaceFolder}/src/*.cpp",
+                "${workspaceFolder}/src/*.cc",
                 "-o",
                 "${workspaceFolder}/bin/${config:programName}"
             ],
