@@ -212,7 +212,7 @@ namespace yy {
     {
 #line 25 "parser.y"
 
-    initial         ival;
+    int             ival;
     std::string    *sval
 
     OptStateList   *states;

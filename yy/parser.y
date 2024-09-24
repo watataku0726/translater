@@ -23,7 +23,7 @@ class Option;
 %define parse.error verbose
 
 %union {
-    initial         ival;
+    int             ival;
     std::string    *sval
 
     OptStateList   *states;
