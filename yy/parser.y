@@ -17,24 +17,24 @@ class Option;
 %expect 1
 %initial-action
 {
-    @$.begin.filename = @$.end.filename = &driver.GetFilename();
+    @$.begin.filename = @$.end.filename = &driver.GetFileName();
 };
 
 %define parse.error verbose
 
 %union {
     int             ival;
-    std::string    *sval
+    std::string    *sval;
 
     OptStateList   *states;
     OptDeclList    *decls;
     OptStatement   *statement;
-    OptDeclaration *declaration;
-    CArgs          *args;
-    CValueNode     *value;
-    CNode          *expr;
-    CAssign        *assign;
-    CStateBlock    *block;
+    OptDecl        *declaration;
+    OptArgs        *args;
+    OptValueNode   *value;
+    OptNode        *expr;
+    OptLet         *assign;
+    OptStateBlock  *block;
 }
 %code {
 #include "Option.h"
@@ -91,16 +91,16 @@ class Option;
 %%
 %start unit;
 
-unit                : define_or_state ';'
+unit                : define_or_state 
                     | unit define_or_state
                     ;
 
 define_or_state     : error ';'
                     | "def" "identifier" ':' "Register" ';'         { driver.DefineRegister(@2, $2); }
-                    | "def" "identifier" ':' "Instruction" block    { driver.DefineInstruction(@2, $2, $5)}
+                    | "def" "identifier" ':' "Instruction" block    { driver.DefineInstruction(@2, $2, $5); }
                     ;
 
-block               : '{' decl_list state_list '}'                  { $$ = new OptBlock($2, $3); }
+block               : '{' decl_list state_list '}'                  { $$ = new OptStateBlock($2, $3); }
                     ;
 
 decl_list           :                                               { $$ = nullptr; }
@@ -111,14 +111,14 @@ state_list          :                                               { $$ = nullp
                     | states                                        { $$ = $1; }
                     ;
 
-decls               : declaration                                   { $$ = new OptDecList($1); } 
+decls               : declaration                                   { $$ = new OptDeclList($1); } 
                     | decls declaration                             { $$ = $1->Add($2); }
                     ;
 
-declaration         : "def" "identifier" ';' "local" ';'            { $$ = new OptDecl($2); }
+declaration         : "def" value ':' "local" ';'                   { $$ = new OptDecl($2); }
                     ;
 
-states              : statement                                     { $$ = new OptStateList($1)}
+states              : statement                                     { $$ = new OptStateList($1);}
                     | states statement                              { $$ = $1->Add($2); }
                     ;
 
@@ -129,8 +129,8 @@ statement           : ';'                                               { $$ = n
                     | "if" '(' expr ')' statement                       { $$ = new OptIfStatement(@1, $3, $5); }  
                     | "if" '(' expr ')' statement "else" statement      { $$ = new OptIfStatement(@1, $3, $5, $7); }
                     | "while" '(' expr ')' statement                    { $$ = new OptWhileStatement(@1, $3, $5); }
-                    | "load" '<' "identifier" ',' "identifier" '>' ';'  { $$ = new OptLoadStatement(@1, $3, $5); }
-                    | "store" '<' "identifier" ',' "identifier" '>' ';' { $$ = new OptStoreStatement(@1, $3, $5); }
+                    | "load" '<' value ',' value '>' ';'                { $$ = new OptLoadStatement(@1, $3, $5); }
+                    | "store" '<' value ',' value '>' ';'               { $$ = new OptStoreStatement(@1, $3, $5); }
                     | block                                             { $$ = new OptBlockStatement(@1, $1); }
                     ;
 
@@ -139,25 +139,25 @@ assign              : "let" value '=' expr                          { $$ = new O
                     | "let" value "-=" expr                         { $$ = new OptLet(@1, '-', $2, $4); }
                     ;
 
-expr                : expr "&&" expr            { $$ = new OptNode::MakeNode(driver, @2, OPCODE::OP_LOGAND, $1, $3); }
-                    | expr "||" expr            { $$ = new OptNode::MakeNode(driver, @2, OPCODE::OP_LOGOR, $1, $3); }
-                    | expr "==" expr            { $$ = new OptNode::MakeNode(driver, @2, OPCODE::OP_EQ, $1, $3); }
-                    | expr "!=" expr            { $$ = new OptNode::MakeNode(driver, @2, OPCODE::OP_NE, $1, $3); }
-                    | expr ">=" expr            { $$ = new OptNode::MakeNode(driver, @2, OPCODE::OP_GE, $1, $3); }
-                    | expr "<=" expr            { $$ = new OptNode::MakeNode(driver, @2, OPCODE::OP_LE, $1, $3); }
-                    | expr '>' expr             { $$ = new OptNode::MakeNode(driver, @2, OPCODE::OP_GT, $1, $3); }
-                    | expr '<' expr             { $$ = new OptNode::MakeNode(driver, @2, OPCODE::OP_LT, $1, $3); }
+expr                : expr "&&" expr            { $$ =  OptNode::MakeNode(driver, @2, OPCODE::OP_LOGAND, $1, $3); }
+                    | expr "||" expr            { $$ =  OptNode::MakeNode(driver, @2, OPCODE::OP_LOGOR, $1, $3); }
+                    | expr "==" expr            { $$ =  OptNode::MakeNode(driver, @2, OPCODE::OP_EQ, $1, $3); }
+                    | expr "!=" expr            { $$ =  OptNode::MakeNode(driver, @2, OPCODE::OP_NE, $1, $3); }
+                    | expr ">=" expr            { $$ =  OptNode::MakeNode(driver, @2, OPCODE::OP_GE, $1, $3); }
+                    | expr "<=" expr            { $$ =  OptNode::MakeNode(driver, @2, OPCODE::OP_LE, $1, $3); }
+                    | expr '>' expr             { $$ =  OptNode::MakeNode(driver, @2, OPCODE::OP_GT, $1, $3); }
+                    | expr '<' expr             { $$ =  OptNode::MakeNode(driver, @2, OPCODE::OP_LT, $1, $3); }
                     | '(' expr ')'              { $$ = $2; }
                     | value                     { $$ = $1; }
-                    | "ival"                    { $$ = new CNode(@1, OPCODE::OP_CONST, $1); }
-                    | "identifier" '(' args ')' {$$ = new CFunctionNode(@1, $1, $3); }
-                    | "identifier" '(' ')'      {$$ = new CFunctionNode(@1, $1, nullptr); }
+                    | "ival"                    { $$ = new OptNode(@1, OPCODE::OP_CONST, $1); }
+                    | "identifier" '(' args ')' {$$ = new OptFunctionNode(@1, $1, $3); }
+                    | "identifier" '(' ')'      {$$ = new OptFunctionNode(@1, $1, nullptr); }
                     ;
 
-value               : "identifier"              { $$ = new CValueNode(@1, $1); }
+value               : "identifier"              { $$ = new OptValueNode(@1, $1); }
                     ;
 
-args                : expr                      { $$ = new CArgs($1); }
+args                : expr                      { $$ = new OptArgs($1); }
                     | args ',' expr             { $$ = $1->Add($3); }
                     ;
 

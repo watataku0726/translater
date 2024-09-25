@@ -213,17 +213,17 @@ namespace yy {
 #line 25 "parser.y"
 
     int             ival;
-    std::string    *sval
+    std::string    *sval;
 
     OptStateList   *states;
     OptDeclList    *decls;
     OptStatement   *statement;
-    OptDeclaration *declaration;
-    CArgs          *args;
-    CValueNode     *value;
-    CNode          *expr;
-    CAssign        *assign;
-    CStateBlock    *block;
+    OptDecl        *declaration;
+    OptArgs        *args;
+    OptValueNode   *value;
+    OptNode        *expr;
+    OptLet         *assign;
+    OptStateBlock  *block;
 
 #line 229 "parser.hh"
 
@@ -606,7 +606,7 @@ namespace yy {
     static const signed char yydefact_[];
 
     // YYPGOTO[NTERM-NUM].
-    static const short yypgoto_[];
+    static const signed char yypgoto_[];
 
     // YYDEFGOTO[NTERM-NUM].
     static const signed char yydefgoto_[];
@@ -858,7 +858,7 @@ namespace yy {
     /// Constants.
     enum
     {
-      yylast_ = 143,     ///< Last index in yytable_.
+      yylast_ = 149,     ///< Last index in yytable_.
       yynnts_ = 14,  ///< Number of nonterminal symbols.
       yyfinal_ = 7 ///< Termination state number.
     };

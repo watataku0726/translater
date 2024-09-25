@@ -6,7 +6,7 @@ def loadata : Instruction {
     while(ready == 0) {
         let dataOut = 0;
         let ready = loadData(memLoadDataIn);
-        if(ready == 0) load<memLoadDataIn, memAddrOut>;
+        if(opOut == 0) load<memLoadDataIn, memAddrOut>;
     }
     let rd = ready;
 }

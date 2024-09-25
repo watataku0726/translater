@@ -35,7 +35,7 @@ blank   [ \t]
 %x CPP_COMMENT
 
 %{
-#define YY_USER_ACTION yyloc->columns(yyleng);
+#define YY_USER_ACTION yylloc->columns(yyleng);
 %}
 %%
 %{
@@ -60,7 +60,7 @@ blank   [ \t]
     "Instruction"   return token::TK_INSTRUCTION;
     "Register"      return token::TK_REGISTER;
     "local"         return token::TK_LOCAL;
-    "def"           return tokne::TK_DEF;
+    "def"           return token::TK_DEF;
     "let"           return token::TK_LET;
 
     \\\n            yylloc->lines();
@@ -81,7 +81,7 @@ blank   [ \t]
     {int}           {
                         errno = 0;
                         long n = strtol(yytext, nullptr, 10);
-                        if (n < LONG_MIN || n > LONG_MAX || errno = ERANGE)
+                        if (n < LONG_MIN || n > LONG_MAX || errno == ERANGE)
                             driver.error(*yylloc, "Out of Integier Range");
                         yylval->ival = n;
                         return token::TK_IVAL;
@@ -109,13 +109,13 @@ blank   [ \t]
     "*"+[^*/\n]*    
     "*"+[^*/\n]*\n  {yylloc->lines(); }
     <<EOF>>         driver.error(*yylloc, "File ended in the middle of comment.");
-    "*"+"/"         BEGIN(INITIAL)
+    "*"+"/"         BEGIN(INITIAL);
 }
 %%
 
 void Option::scan_begin() {
-    if((yyin = fopen(file.c_str(), "r")) == 0)
-        error("Failed to open file : " + file);
+    if((yyin = fopen(mFileName.c_str(), "r")) == 0)
+        error("Failed to open file : " + mFileName);
 }
 
 void Option::scan_end() {

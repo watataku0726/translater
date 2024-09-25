@@ -535,7 +535,7 @@ char *yytext;
 #define YY_NO_UNISTD_H 1
 
 #line 38 "scanner.l"
-#define YY_USER_ACTION yyloc->columns(yyleng);
+#define YY_USER_ACTION yylloc->columns(yyleng);
 #line 540 "scanner.cc"
 #line 541 "scanner.cc"
 
@@ -881,7 +881,7 @@ return token::TK_LOCAL;
 case 13:
 YY_RULE_SETUP
 #line 64 "scanner.l"
-return tokne::TK_DEF;
+return token::TK_DEF;
 	YY_BREAK
 case 14:
 YY_RULE_SETUP
@@ -950,7 +950,7 @@ YY_RULE_SETUP
 {
                         errno = 0;
                         long n = strtol(yytext, nullptr, 10);
-                        if (n < LONG_MIN || n > LONG_MAX || errno = ERANGE)
+                        if (n < LONG_MIN || n > LONG_MAX || errno == ERANGE)
                             driver.error(*yylloc, "Out of Integier Range");
                         yylval->ival = n;
                         return token::TK_IVAL;
@@ -1019,7 +1019,7 @@ driver.error(*yylloc, "File ended in the middle of comment.");
 case 35:
 YY_RULE_SETUP
 #line 113 "scanner.l"
-BEGIN(INITIAL)
+BEGIN(INITIAL);
 	YY_BREAK
 
 case 36:
@@ -1915,8 +1915,8 @@ void yyfree (void * ptr )
 
 
 void Option::scan_begin() {
-    if((yyin = fopen(file.c_str(), "r")) == 0)
-        error("Failed to open file : " + file);
+    if((yyin = fopen(mFileName.c_str(), "r")) == 0)
+        error("Failed to open file : " + mFileName);
 }
 
 void Option::scan_end() {

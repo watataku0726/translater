@@ -20,7 +20,7 @@ class Function;
 
 class Translater {
 public:
-    Translater(const std::string& filename, const Option* option);
+    Translater(const std::string& filename);
     ~Translater();
 
     bool Initialize();
@@ -53,7 +53,7 @@ private:
     std::vector<std::string> mContents;
     std::vector<Function*> mFunctions;
     const std::string& mFileName;
-    const Option* mOption;
+    Option* mOption;
     bool mStackFlag;
 
 private:
