@@ -4,6 +4,7 @@
 #include <stack>
 #include "parser.hh"
 #include "Node.h"
+#include "Translater.h"
 
 #include <fstream>
 #include <iostream>
@@ -25,23 +26,37 @@ YY_DECL;
 class Instruction {
 public:
     Instruction(const std::string* name, OptStateBlock* states)
-        :mName(name), mBlock(states)
-    {}
+        :mName(name), mBlock(states), mNumTmp(0), mNumA(0), mNumLabel(0)
+    {   
+        mLocals.emplace("rd", 0);
+        mLocals.emplace("rs1", 0);
+        mLocals.emplace("rs2", 0);
+    }
     ~Instruction() {
         delete mName;
         delete mBlock;
+        mLocals.clear();
     }
 
     void Anaylze(Option* option, std::stringstream& ss);
+    void AddLocal(const std::string* local, int size) { mLocals.emplace(*local, size); }
+    int IsLocal(const std::string* local);
+    void SetNumTmp(int num) { mNumTmp = mNumTmp > num ? mNumTmp : num; }
+    void SetNumA(int num) { mNumA= mNumA > num ? mNumA : num; }
+    int SetLabel() { return mNumLabel++; } 
 
 private:
+    std::map<std::string, int> mLocals;
     const std::string* mName;
     OptStateBlock* mBlock;
+    int mNumTmp;
+    int mNumA;
+    int mNumLabel;
 };
 
 class Option {
 public:
-    Option();
+    Option(const Translater* translater);
     virtual ~Option();
 
     std::string& GetFileName() { return mFileName; }
@@ -54,6 +69,7 @@ public:
     void error(const std::string& m);
 
     const std::vector<const std::string*> GetRegisters() const { return mRegisters; }
+    const Translater* GetTranslater() const { return mTranslater; }
     void WriteInstruction(std::stringstream& ss);
 private:
     void scan_begin();
@@ -62,6 +78,7 @@ private:
 private:
     std::vector<Instruction*> mInstructions;
     std::vector<const std::string*> mRegisters;
+    const Translater* mTranslater;
     int mErrorCount;
 
     std::string mFileName;

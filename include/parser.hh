@@ -336,17 +336,18 @@ namespace yy {
         S_YYACCEPT = 33,                         // $accept
         S_unit = 34,                             // unit
         S_define_or_state = 35,                  // define_or_state
-        S_block = 36,                            // block
-        S_decl_list = 37,                        // decl_list
-        S_state_list = 38,                       // state_list
-        S_decls = 39,                            // decls
-        S_declaration = 40,                      // declaration
-        S_states = 41,                           // states
-        S_statement = 42,                        // statement
-        S_assign = 43,                           // assign
-        S_expr = 44,                             // expr
-        S_value = 45,                            // value
-        S_args = 46                              // args
+        S_inst_block = 36,                       // inst_block
+        S_block = 37,                            // block
+        S_decl_list = 38,                        // decl_list
+        S_state_list = 39,                       // state_list
+        S_decls = 40,                            // decls
+        S_declaration = 41,                      // declaration
+        S_states = 42,                           // states
+        S_statement = 43,                        // statement
+        S_assign = 44,                           // assign
+        S_expr = 45,                             // expr
+        S_value = 46,                            // value
+        S_args = 47                              // args
       };
     };
 
@@ -606,7 +607,7 @@ namespace yy {
     static const signed char yydefact_[];
 
     // YYPGOTO[NTERM-NUM].
-    static const signed char yypgoto_[];
+    static const short yypgoto_[];
 
     // YYDEFGOTO[NTERM-NUM].
     static const signed char yydefgoto_[];
@@ -858,8 +859,8 @@ namespace yy {
     /// Constants.
     enum
     {
-      yylast_ = 149,     ///< Last index in yytable_.
-      yynnts_ = 14,  ///< Number of nonterminal symbols.
+      yylast_ = 144,     ///< Last index in yytable_.
+      yynnts_ = 15,  ///< Number of nonterminal symbols.
       yyfinal_ = 7 ///< Termination state number.
     };
 
@@ -871,7 +872,7 @@ namespace yy {
 
 
 } // yy
-#line 875 "parser.hh"
+#line 876 "parser.hh"
 
 
 

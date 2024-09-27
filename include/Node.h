@@ -7,7 +7,9 @@
 #include <algorithm>
 #include "location.hh"
 
+
 class Option;
+class Instruction;
 class OptNode;
 class OptValueNode;
 class OptDecl;
@@ -30,7 +32,7 @@ public:
         mArgs.push_back(add);
         return this;
     }
-
+/*
     template<typename Fn>
     void for_each(const Fn& func) {
         std::for_each(mArgs.begin(), mArgs.end(), func);
@@ -40,7 +42,7 @@ public:
     void for_each_rev(const Fn& func) {
         std::for_each(mArgs.rbegin(), mArgs.rend(), func);
     }
-
+*/
     size_t Size() const { return mArgs.size(); }
     T* Get(size_t idx) { return mArgs[idx]; }
     T* operator[](size_t idx) { return mArgs[idx]; }
@@ -96,8 +98,11 @@ public:
     OPCODE Op() const { return mOp; }
     int Value() const { return mValue; }
     const std::string& String() const { return *mString; }
+    const std::string* StringPtr() const { return mString; }
     const OptNode* Left() const { return mLeft; }
     const OptNode* Right() const { return mRight; }
+
+    virtual void Analyze(Option* option, Instruction* inst, std::stringstream& ss, int depth, int& times);
 
     static OptNode* MakeNode(Option& option, const yy::location& l, 
         OPCODE op, OptNode* left, OptNode* right = nullptr);
@@ -117,6 +122,8 @@ public:
         :OptNode(l, OPCODE::OP_VALUE, name, node)
     {}
 
+    void Analyze(Option* option, Instruction* inst, std::stringstream& ss, int depth, int& times);
+
     int Push(Option* option) const;
     int Pop(Option* option) const;
 };
@@ -129,6 +136,8 @@ public:
     ~OptFunctionNode() {
         delete mArgs;
     }
+
+    void Analyze(Option* option, Instruction* inst, std::stringstream& ss, int depth, int& times);
 
     int Push(Option* option) const;
     int Pop(Option* option) const;
@@ -147,7 +156,7 @@ public:
         delete mExpr;
     }
 
-    void Analyze(Option* option, std::stringstream& ss);
+    void Analyze(Option* option, Instruction* inst, std::stringstream& ss, int depth);
     void PushValue(Option* option) { mValue->Push(option); }
     void PopValue(Option* option) { mValue->Pop(option); }
 
@@ -167,7 +176,7 @@ public:
         delete mValue;
     }
 
-    void Analyze(Option* option, std::stringstream& ss);
+    void Analyze(Option* option, Instruction* inst, std::stringstream& ss, int depth);
     
 private:
     OptValueNode* mValue;
@@ -183,7 +192,7 @@ public:
         delete mStates;
     }
 
-    void Analyze(Option* option, std::stringstream& ss);
+    void Analyze(Option* option, Instruction* inst, std::stringstream& ss, int depth);
 
 private:
     OptDeclList* mDecls;
@@ -219,7 +228,7 @@ public:
 
     }
 
-    virtual void Analyze(Option* option, std::stringstream& ss) = 0;
+    virtual void Analyze(Option* option, Instruction* inst, std::stringstream& ss, int depth) = 0;
 //    virtual void case_analyze(case_action_param) {
 //
 //    }
@@ -234,7 +243,7 @@ public:
     OptNopStatement(const yy::location& l)
         :OptStatement(l, NOP)
     {}
-    virtual void Analyze(Option* option, std::stringstream& ss);
+    virtual void Analyze(Option* option, Instruction* inst, std::stringstream& ss, int depth);
 };
 
 class OptLetStatement : public OptStatement {
@@ -246,7 +255,7 @@ public:
         delete mAssign;
     }
 
-    virtual void Analyze(Option* option, std::stringstream& ss);
+    virtual void Analyze(Option* option, Instruction* inst, std::stringstream& ss, int depth);
 
 private:
     OptLet* mAssign;
@@ -260,7 +269,7 @@ public:
     ~OptFunctionStatement() {
 
     }
-    virtual void Analyze(Option* option, std::stringstream& ss);
+    virtual void Analyze(Option* option, Instruction* inst, std::stringstream& ss, int depth);
 
 private:
     OptFunctionNode mNode;
@@ -279,7 +288,7 @@ public:
         delete mElseStatement;
     }
 
-    virtual void Analyze(Option* option, std::stringstream& ss);
+    virtual void Analyze(Option* option, Instruction* inst, std::stringstream& ss, int depth);
 
 private:
     OptNode* mExpr;
@@ -297,7 +306,7 @@ public:
         delete mStatement;
     }
 
-    virtual void Analyze(Option* option, std::stringstream& ss);
+    virtual void Analyze(Option* option, Instruction* inst, std::stringstream& ss, int depth);
 
 private:
     OptNode* mExpr;
@@ -314,7 +323,7 @@ public:
         delete mBlock;
     }
 
-    virtual void Analyze(Option* option, std::stringstream& ss);
+    virtual void Analyze(Option* option, Instruction* inst, std::stringstream& ss, int depth);
 
 private:
     OptStateBlock* mBlock;
@@ -330,7 +339,7 @@ public:
         delete mAddr;
     }
 
-    virtual void Analyze(Option* option, std::stringstream& ss);
+    virtual void Analyze(Option* option, Instruction* inst, std::stringstream& ss, int depth);
 
 private:
     OptValueNode* mrd;
@@ -347,7 +356,7 @@ public:
         delete mAddr;
     }
 
-    virtual void Analyze(Option* option, std::stringstream& ss);
+    virtual void Analyze(Option* option, Instruction* inst, std::stringstream& ss, int depth);
 
 private:
     OptValueNode* mrs1;

@@ -68,7 +68,7 @@ class Option;
 %type <assign>      assign
 %type <decls>       decls decl_list
 %type <states>      states state_list
-%type <block>       block
+%type <block>       block inst_block
 %type <args>        args
 %type <statement>   statement
 %type <declaration> declaration
@@ -78,7 +78,7 @@ class Option;
 %destructor { delete $$; } decls decl_list
 %destructor { delete $$; } states state_list
 %destructor { delete $$; } args
-%destructor { delete $$; } block
+%destructor { delete $$; } block inst_block
 %destructor { delete $$; } assign
 %destructor { delete $$; } statement
 %destructor { delete $$; } value
@@ -96,12 +96,14 @@ unit                : define_or_state
                     ;
 
 define_or_state     : error ';'
-                    | "def" "identifier" ':' "Register" ';'         { driver.DefineRegister(@2, $2); }
-                    | "def" "identifier" ':' "Instruction" block    { driver.DefineInstruction(@2, $2, $5); }
+                    | "def" "identifier" ':' "Register" ';'             { driver.DefineRegister(@2, $2); }
+                    | "def" "identifier" ':' "Instruction" inst_block   { driver.DefineInstruction(@2, $2, $5); }
                     ;
 
-block               : '{' decl_list state_list '}'                  { $$ = new OptStateBlock($2, $3); }
+inst_block          : '{' decl_list state_list '}'                  { $$ = new OptStateBlock($2, $3); }
                     ;
+
+block               : '{' state_list '}'                            { $$ = new OptStateBlock(nullptr, $2); }
 
 decl_list           :                                               { $$ = nullptr; }
                     | decls                                         { $$ = $1; }

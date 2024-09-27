@@ -1,5 +1,6 @@
 #include "Option.h"
 #include "parser.hh"
+#include "Node.h"
 #include <sstream>
 #include <string>
 
@@ -7,8 +8,8 @@
 #pragma warning(disable: 4996)
 #endif
 
-Option::Option()
-    :mErrorCount(0)
+Option::Option(const Translater* translater)
+    :mErrorCount(0), mTranslater(translater)
     {}
 
 Option::~Option() {
@@ -61,6 +62,18 @@ void Option::WriteInstruction(std::stringstream& ss) {
 
 void Instruction::Anaylze(Option* option, std::stringstream& ss) {
     ss << "static bool trans_" << *mName << "(DisasContext *ctx, arg_" << *mName << " *a) {\n";
-    mBlock->Analyze(option, ss);
+    std::stringstream tmp_ss;
+    mBlock->Analyze(option, this, tmp_ss, 1);
+
+    ss << tmp_ss.rdbuf();
+    //rd ha shokikashiyou
     ss << "\treturn true;\n}\n";
+}
+
+int Instruction::IsLocal(const std::string* local) {
+    auto iter = mLocals.find(*local);
+    if(iter != mLocals.end()) {
+        return iter->second;
+    }
+    return -1;
 }
