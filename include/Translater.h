@@ -27,12 +27,15 @@ public:
     void RunLoop();
 
     int IsFunction(const std::string& name) const;
+    int IsGlobalRegister(const std::string& name) const;
+    void AddGlobalRegister(const std::string& name);
 private:
     enum class State {
         InFunction = 0,
         IntoFunction,
         OutofFunction,
         InObject,
+        InConstobject,
     };     
 
     struct Register {
@@ -40,9 +43,11 @@ private:
         std::string indexglobalRegister;
         int frameIdx;
         enum class AssignState : char {
+            Unknown = -1,
             None = 0,
-            Global,
-            Frame,
+            Global = 1,
+            Frame = 2,
+            Const = 4,
         } assignState;
         int arraySize;
         Register() 
@@ -50,6 +55,7 @@ private:
             ,assignState(AssignState::None), arraySize(0) {};
     } mAssignedRegisters[MAX_GLOBAL_ASSIGNED_REIGSTERS];    
 
+    std::map<std::string, std::vector<unsigned>*> mConstValues;
     std::map<std::string, int> mGlobalRegisters;
     std::map<std::string, int> mFunctionTable;
     std::vector<std::string> mContents;
@@ -65,6 +71,7 @@ private:
     bool Analyze_in_IntoFunction(const std::string& line, State& state, int& pos);
     bool Analyze_in_OutofFunction(const std::string& line, State& state);
     bool Analyze_in_InObject(const std::string& line, State& state);
+    bool Analyze_in_InConstobject(const std::string& line, State& state);
     
     void Prologue(std::stringstream& ss);
     void Epilogue(std::stringstream& ss);
@@ -91,8 +98,11 @@ private:
     void FreeAssign(int reg_number);
     bool IsAssignedGlobal(int reg_number);
     bool IsAssignedFrame(int reg_number);
+    bool IsAssignedConst(int reg_number);
+    Register::AssignState GetAssignState(int reg_number);
     void AssignGlobal(int reg_number, const std::string& global_register_name, const std::string& index_reg_name = "");
     void AssignFrame(int reg_number, int index, int size, const std::string& index_reg_name = "");
+    void AssignConst(int reg_number, const std::string& const_register_name, const std::string& index_reg_name = "");
 };
 
 #endif //!__TRANSLATER_H__

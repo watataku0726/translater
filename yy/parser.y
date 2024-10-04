@@ -52,16 +52,18 @@ class Option;
 %token          TK_ADD_ASSIGN   "+="
 %token          TK_SUB_ASSIGN   "-="
 
+
 %token          TK_IF           "if"
 %token          TK_ELSE         "else"
 %token          TK_WHILE        "while"
-%token          TK_DEF         "def"
+%token          TK_DEF          "def"
 %token          TK_LET          "let"
 %token          TK_REGISTER     "Register"
 %token          TK_INSTRUCTION  "Instruction"
 %token          TK_LOCAL        "local"
 %token          TK_LOAD         "load"
 %token          TK_STORE        "store"
+%token          TK_PROJECTNAME  "projectName"
 
 %type <expr>        expr
 %type <value>       value
@@ -98,6 +100,7 @@ unit                : define_or_state
 define_or_state     : error ';'
                     | "def" "identifier" ':' "Register" ';'             { driver.DefineRegister(@2, $2); }
                     | "def" "identifier" ':' "Instruction" inst_block   { driver.DefineInstruction(@2, $2, $5); }
+                    | "let" "projectName" '=' "identifier" ';'          { driver.SetProjectName(@2, $4); }
                     ;
 
 inst_block          : '{' decl_list state_list '}'                  { $$ = new OptStateBlock($2, $3); }
@@ -131,8 +134,8 @@ statement           : ';'                                               { $$ = n
                     | "if" '(' expr ')' statement                       { $$ = new OptIfStatement(@1, $3, $5); }  
                     | "if" '(' expr ')' statement "else" statement      { $$ = new OptIfStatement(@1, $3, $5, $7); }
                     | "while" '(' expr ')' statement                    { $$ = new OptWhileStatement(@1, $3, $5); }
-                    | "load" '<' value ',' value '>' ';'                { $$ = new OptLoadStatement(@1, $3, $5); }
-                    | "store" '<' value ',' value '>' ';'               { $$ = new OptStoreStatement(@1, $3, $5); }
+                    | value "<=" "load" '<' value '>' ';'               { $$ = new OptLoadStatement(@1, $1, $5); }
+                    | "store" '<' value '>' "<=" value ';'              { $$ = new OptStoreStatement(@1, $6, $3); }
                     | block                                             { $$ = new OptBlockStatement(@1, $1); }
                     ;
 

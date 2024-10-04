@@ -40,11 +40,10 @@ public:
 
     void Anaylze(Option* option, std::stringstream& ss);
     void AddLocal(const std::string* local, int size) { mLocals.emplace(*local, size); }
-    int IsLocal(const std::string* local);
+    int IsLocal(const Option* option, const std::string& local);
     void SetNumTmp(int num) { mNumTmp = mNumTmp > num ? mNumTmp : num; }
     void SetNumA(int num) { mNumA= mNumA > num ? mNumA : num; }
     int SetLabel() { return mNumLabel++; } 
-
 private:
     std::map<std::string, int> mLocals;
     const std::string* mName;
@@ -56,19 +55,21 @@ private:
 
 class Option {
 public:
-    Option(const Translater* translater);
+    Option(Translater* translater);
     virtual ~Option();
 
     std::string& GetFileName() { return mFileName; }
+    const std::string& GetProjectName() const; 
     bool compile(const std::string& f);
 
     void DefineInstruction(const yy::location& l, const std::string* name, OptStateBlock* block);
     void DefineRegister(const yy::location& l, const std::string* name);
+    void SetProjectName(const yy::location& l, const std::string* name) { mProjectName = name; }
 
     void error(const yy::location& l, const std::string& m);
     void error(const std::string& m);
 
-    const std::vector<const std::string*> GetRegisters() const { return mRegisters; }
+    //const std::vector<const std::string*> GetRegisters() const { return mRegisters; }
     const Translater* GetTranslater() const { return mTranslater; }
     void WriteInstruction(std::stringstream& ss);
 private:
@@ -76,12 +77,13 @@ private:
     void scan_end();
 
 private:
+    std::string mFileName;
     std::vector<Instruction*> mInstructions;
-    std::vector<const std::string*> mRegisters;
-    const Translater* mTranslater;
+    //std::vector<const std::string*> mRegisters;
+    const std::string* mProjectName;
+    Translater* mTranslater;
     int mErrorCount;
 
-    std::string mFileName;
 };
 
 #endif //!__OPTION_H__

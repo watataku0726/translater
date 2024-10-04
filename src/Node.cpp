@@ -93,11 +93,11 @@ void OptNode::Analyze(Option* option, Instruction* inst, std::stringstream& ss, 
     }
 
     if(value1 != nullptr) {
-        int ret = inst->IsLocal(value1->StringPtr());
+        int ret = inst->IsLocal(option, value1->String());
         if(ret < 0)
             option->error(mL, "Unknown Local : " + value1->String());
         if(value2 != nullptr) {
-            ret = inst->IsLocal(value1->StringPtr());
+            ret = inst->IsLocal(option, value1->String());
             if(ret < 0)
                 option->error(mL, "Unknown Local : " + value1->String());
         }
@@ -230,7 +230,7 @@ void OptNode::Analyze(Option* option, Instruction* inst, std::stringstream& ss, 
 }
 
 void OptValueNode::Analyze(Option* option, Instruction* inst, std::stringstream& ss, int depth, int& times) {
-    int ret = inst->IsLocal(mString);
+    int ret = inst->IsLocal(option, *mString);
     if(ret < 0) {
         option->error(mL, "Unknown Local : " + *mString);
         //return;
@@ -248,7 +248,8 @@ void OptFunctionNode::Analyze(Option* option, Instruction* inst, std::stringstre
         return;
     }
 
-    int numArgs = mArgs->Size();        
+    int numArgs = 0;
+    if(mArgs) numArgs = mArgs->Size();        
 
     if(numArgs != args) {
         option->error(mL, "Defferent number of Arguments: " + *mString);
@@ -301,7 +302,7 @@ void OptFunctionNode::Analyze(Option* option, Instruction* inst, std::stringstre
 
     for(int i = 0; i < depth; ++i)
         ss << '\t';
-    ss << *mString << "(rd";
+    ss << *mString << "(r0";
     for(int i = 0, e = numArgs > NUMBER_OF_A_REGISTERS ? NUMBER_OF_A_REGISTERS : numArgs; i < e;  ++i) {
 
         ss << ", a" << i;
@@ -313,7 +314,7 @@ void OptFunctionNode::Analyze(Option* option, Instruction* inst, std::stringstre
     ss << ");\n";
     for(int i = 0; i < depth; ++i)
         ss << '\t';
-    ss << "tcg_gen_mov_tl(tmp" << times++ <<  ", rd);\n";
+    ss << "tcg_gen_mov_tl(tmp" << times++ <<  ", r0);\n";
 }
 
 void OptDecl::Analyze(Option* option, Instruction* inst, std::stringstream& ss, int depth) {
@@ -325,21 +326,55 @@ void OptDecl::Analyze(Option* option, Instruction* inst, std::stringstream& ss, 
     
 
 void OptLet::Analyze(Option* option, Instruction* inst, std::stringstream& ss, int depth) {
-
-    const std::string* value = mValue->StringPtr();
-    if(inst->IsLocal(value) == -1)
+    if(inst->IsLocal(option, mValue->String()) == -1)
         option->error(mL, "Unknown Local : " + mValue->String());
 
-    int times = 0;
-    mExpr->Analyze(option, inst, ss, depth, times);
-    inst->SetNumTmp(times);
+    if(mExpr->Op() == OPCODE::OP_CONST) {
+        for(int i = 0; i < depth; ++i)
+            ss << '\t';
+        switch(mOp) {
+            case '=':
+                ss << "tcg_gen_movi_tl(" << mValue->String() << ", " << mExpr->Value() << ");\n";
+                break;
+            case '+':
+                ss << "tcg_gen_addi_tl(" << mValue->String() << ", " << mValue->String() << ", " << mExpr->Value() << ");\n";
+                break;
+            case '-':
+                ss << "tcg_gen_addi_tl(" << mValue->String() << ", " << mValue->String() << ", -(" << mExpr->Value() << "));\n";
+                break;
+        }
+    } else if (mExpr->Op() == OPCODE::OP_VALUE) {
+        for(int i = 0; i < depth; ++i)
+            ss << '\t';
+        switch(mOp) {
+            case '=':
+                ss << "tcg_gen_mov_tl(" << mValue->String() << ", " << mExpr->String() << ");\n";
+                break;
+            case '+':
+                ss << "tcg_gen_add_tl(" << mValue->String() << ", " << mValue->String() << ", " << mExpr->String() << ");\n";
+                break;
+            case '-':
+                ss << "tcg_gen_sub_tl(" << mValue->String() << ", " << mValue->String() << ", " << mExpr->String() << ");\n";
+                break;
+        }
+    }else {
+        int times = 0;
+        mExpr->Analyze(option, inst, ss, depth, times);
+        inst->SetNumTmp(times);
 
-    for(int i = 0; i < depth; ++i)
-        ss << '\t';
-    switch(mOp) {
-        case '=':
-            ss << "tcg_gen_mov_tl(" << mValue->String() << ", tmp" << times - 1 << ");\n";
-
+        for(int i = 0; i < depth; ++i)
+            ss << '\t';
+        switch(mOp) {
+            case '=':
+                ss << "tcg_gen_mov_tl(" << mValue->String() << ", tmp" << times - 1 << ");\n";
+                break;
+            case '+':
+                ss << "tcg_gen_add_tl(" << mValue->String() << ", " << mValue->String() << ", tmp" << times - 1 << ");\n";
+                break;
+            case '-':
+                ss << "tcg_gen_sub_tl(" << mValue->String() << ", " << mValue->String() << ", tmp" << times - 1 << ");\n";
+                break;
+        }
     }
     
 }
@@ -349,8 +384,9 @@ void OptStateBlock::Analyze(Option* option, Instruction* inst, std::stringstream
         for(int i = 0, e = mDecls->Size(); i < e; ++i) {
             mDecls->Get(i)->Analyze(option, inst, ss, depth);
         }
+        ss << '\n';
     }
-    ss << '\n';
+   
     if(mStates) {
         for(int i = 0, e = mStates->Size(); i < e; ++i) {
             mStates->Get(i)->Analyze(option, inst, ss, depth);
@@ -364,13 +400,15 @@ void OptNopStatement::Analyze(Option* option, Instruction* inst, std::stringstre
 
 void OptLetStatement::Analyze(Option* option, Instruction* inst, std::stringstream& ss, int depth) {
 
-    //ss << "\n";
+    
     mAssign->Analyze(option, inst, ss, depth);
-    //ss << "\n";
+
 }
 
 void OptFunctionStatement::Analyze(Option* option, Instruction* inst, std::stringstream& ss, int depth) {
-    
+    int times = 0;
+    mNode.Analyze(option,inst, ss, depth, times);
+    inst->SetNumTmp(times);
 }
 
 void OptIfStatement::Analyze(Option* option, Instruction* inst, std::stringstream& ss, int depth) {
@@ -419,13 +457,13 @@ void OptWhileStatement::Analyze(Option* option, Instruction* inst, std::stringst
         ss << '\t';
     ss << "tcg_gen_brcondi_tl(TCG_COND_EQ, tmp" << times - 1 << ", 0, label" << label2 << ");\n";
     mStatement->Analyze(option, inst, ss, depth);
+    for(int i = 0; i < depth; ++i)
+        ss << '\t';
+    ss << "tcg_gen_brcondi_tl(TCG_COND_ALWAYS, ctx->zero, 0, label" << label1 << ");\n";
     ss << '\n';
     for(int i = 0; i < depth; ++i)
         ss << '\t';
     ss << "gen_set_label(label" << label2 << ");\n";
-    for(int i = 0; i < depth; ++i)
-        ss << '\t';
-    ss << "tcg_gen_brcondi_tl(TCG_COND_ALWAYS, ctx->zero, 0, label" << label1 << ");\n";
     //ss << "//While Statement End\n";
 }
 
@@ -434,10 +472,26 @@ void OptBlockStatement::Analyze(Option* option, Instruction* inst, std::stringst
 }
 
 void OptLoadStatement::Analyze(Option* option, Instruction* inst, std::stringstream& ss, int depth) {
-    
+    if(inst->IsLocal(option, mrd->String()) == -1) 
+        option->error("Unknown Local : " + mrd->String());
+
+    if(inst->IsLocal(option, mAddr->String()) == -1) 
+        option->error("Unknown Local : " + mAddr->String());
+
+    for(int i = 0; i < depth; ++i) 
+        ss << '\t';
+    ss << "tcg_gen_qemu_ld_tl(" << mrd->String() << ", " << mAddr->String()  << ", ctx->mem_idx, MO_TUEL);\n";
 }
 
 void OptStoreStatement::Analyze(Option* option, Instruction* inst, std::stringstream& ss, int depth) {
+    if(inst->IsLocal(option, mrs1->String()) == -1) 
+        option->error("Unknown Local : " + mrs1->String());
+
+    if(inst->IsLocal(option, mAddr->String()) == -1) 
+        option->error("Unknown Local : " + mAddr->String());
     
+    for(int i = 0; i < depth; ++i) 
+        ss << '\t';
+    ss << "tcg_gen_qemu_st_tl(" << mrs1->String() << ", " << mAddr->String()  << ", ctx->mem_idx, MO_TUEL);\n";
 }
 

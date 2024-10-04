@@ -1,15 +1,57 @@
+
+let projectName = sha256;
+
 def memLoadDataIn : Register;
 
-def loadata : Instruction {
+def reset : Instruction {
+    reset();
+}
+
+def setAddr_H : Instruction {
+    setAddr(rs1, 0);
+}
+
+def setAddr_W : Instruction {
+    setAddr(rs1, 1);
+}
+
+def setAddr_m : Instruction {
+    setAddr(rs1, 2);
+}
+
+def loaData : Instruction {
     def ready : local;
     let ready = 0;
-    let ready = 1 < ready;
-    let ready = ready > 1 && ready;
-    let ready = loadData(memLoadDataIn);
-    while(ready != 0) {
-        let dataOut = 0;
+    while(ready == 0) {
+        let dataOut = 36;
+        let opOut = 0;
+        let memAddrOut = 0;
         let ready = loadData(memLoadDataIn);
-        if(opOut == 6) load<memLoadDataIn, memAddrOut>;
+        if(opOut == 6) memLoadDataIn <= load<memAddrOut>;
     }
-    let rd = ready;
+    let rd = dataOut;
+}
+
+def storeData : Instruction {
+    def ready : local;
+    let ready = 0;
+    while(ready == 0) {
+        let dataOut = 0;
+        let opOut = 36;
+        let memAddrOut = 0;
+        let ready = storeData();
+        if(opOut == 7) store<memAddrOut> <= dataOut;
+    }
+    let rd = dataOut;
+}
+
+def computeHash : Instruction {
+    def ready : local;
+    let ready = 0;
+    while(ready == 0) {
+        let dataOut = 0;
+        let opOut = 36;
+        let ready = computeHash();
+    }
+    let rd = dataOut;
 }

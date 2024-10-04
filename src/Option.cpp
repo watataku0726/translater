@@ -8,17 +8,18 @@
 #pragma warning(disable: 4996)
 #endif
 
-Option::Option(const Translater* translater)
-    :mErrorCount(0), mTranslater(translater)
+Option::Option(Translater* translater)
+    :mErrorCount(0), mTranslater(translater), mProjectName(nullptr)
     {}
 
 Option::~Option() {
     for(auto inst : mInstructions)
         delete inst;
     mInstructions.clear();
-    for(auto reg : mRegisters)
-        delete reg;
-    mRegisters.clear();
+    //for(auto reg : mRegisters)
+    //    delete reg;
+    //mRegisters.clear();
+    delete mProjectName;
 }
 
 bool Option::compile(const std::string& f) {
@@ -51,7 +52,9 @@ void Option::DefineInstruction(const yy::location& l, const std::string* name, O
 }
 
 void Option::DefineRegister(const yy::location& l, const std::string* name){
-    mRegisters.push_back(name);
+    //mRegisters.push_back(name);
+    mTranslater->AddGlobalRegister(*name);
+    delete name;
 }
 
 void Option::WriteInstruction(std::stringstream& ss) {
@@ -60,20 +63,40 @@ void Option::WriteInstruction(std::stringstream& ss) {
     }
 }
 
+const std::string& Option::GetProjectName() const {
+    const static std::string empty = "";
+    if(mProjectName)
+        return *mProjectName;
+    return empty;
+}
+
 void Instruction::Anaylze(Option* option, std::stringstream& ss) {
     ss << "static bool trans_" << *mName << "(DisasContext *ctx, arg_" << *mName << " *a) {\n";
     std::stringstream tmp_ss;
     mBlock->Analyze(option, this, tmp_ss, 1);
 
+    ss  << "\tTCGv rd = get_gpr(ctx, a->rd, EXT_NONE);\n"
+        << "\tTCGv rs1 = get_gpr(ctx, a->rs1, EXT_NONE);\n"
+        << "\tTCGv rs2 = get_gpr(ctx, a->rs2, EXT_NONE);\n\n";
+
+    for(int i = 0; i < mNumTmp; ++i) 
+        ss << "\tTCGv tmp" << i << " = tcg_temp_local_new();\n";
+    for(int i = 0; i < mNumA; ++i) 
+        ss << "\tTCGv a" << i << " = tcg_temp_local_new();\n";
+    ss  << "\tTCGv r0 = tcg_temp_local_new();\n"
+        << "\ttcg_gen_movi_tl(r0, 0);\n\n";
+    for(int i = 0; i < mNumLabel; ++i) 
+        ss << "\tTCGLabel *label" << i << " = gen_new_label();\n"; 
+    //ss << '\n';
+
     ss << tmp_ss.rdbuf();
-    //rd ha shokikashiyou
-    ss << "\treturn true;\n}\n";
+    ss << "\treturn true;\n}\n\n";
 }
 
-int Instruction::IsLocal(const std::string* local) {
-    auto iter = mLocals.find(*local);
+int Instruction::IsLocal(const Option* option, const std::string& local) {
+    auto iter = mLocals.find(local);
     if(iter != mLocals.end()) {
         return iter->second;
     }
-    return -1;
+    return option->GetTranslater()->IsGlobalRegister(local);
 }

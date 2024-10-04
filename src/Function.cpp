@@ -24,7 +24,10 @@ Function::Function(int pos, const std::string& functionLabel)
         std::istringstream ss = std::istringstream(functionLabel.substr(2, idx - 2));
         ss >> len;
         mFunctionName = functionLabel.substr(idx, len);
-        mNumArgs = functionLabel.size() - (idx + len);
+        if(functionLabel[idx + len] != 'v')
+            mNumArgs = functionLabel.size() - (idx + len);
+        else
+            mNumArgs = 0;
     }   
 }
 

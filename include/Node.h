@@ -43,7 +43,7 @@ public:
         std::for_each(mArgs.rbegin(), mArgs.rend(), func);
     }
 */
-    size_t Size() const { return mArgs.size(); }
+    size_t Size() const  { return mArgs.size(); }
     T* Get(size_t idx) { return mArgs[idx]; }
     T* operator[](size_t idx) { return mArgs[idx]; }
     const T* Get(size_t idx) const { return mArgs[idx]; }
