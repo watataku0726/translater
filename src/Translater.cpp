@@ -221,12 +221,12 @@ void Translater::AssignFrame(int reg_number, int index, int size, const std::str
 
 void Translater::AssignConst(int reg_number, const std::string& const_register_name, const std::string& index_reg_name) {
     if(reg_number >= 0 && reg_number < MAX_GLOBAL_ASSIGNED_REIGSTERS) {
-        auto iter = mConstValues.find(const_register_name);
-        if(iter != mConstValues.end()) {
+        auto iter = mGlobalRegisters.find(const_register_name);
+        if(iter != mGlobalRegisters.end()) {
             mAssignedRegisters[reg_number].assignState = Register::AssignState::Const;
             mAssignedRegisters[reg_number].globalRegister = const_register_name;
             mAssignedRegisters[reg_number].indexglobalRegister = index_reg_name;
-            mAssignedRegisters[reg_number].arraySize = iter->second->size();
+            mAssignedRegisters[reg_number].arraySize = iter->second;
         }
     }
 }
@@ -1045,19 +1045,6 @@ void Translater::Prologue(std::stringstream& ss) {
         << "\tgen_set_label(label1);\n"
         << "}\n"
         << "#endif // !__TCG_TRANSLATER_HELPERS__\n\n";
-
-    for(auto iter : mConstValues) {
-        size_t size = iter.second->size();
-        int i = 0;
-        ss << "static const unsigned " << iter.first << "[" << size << "] = { " << std::hex;
-        for(unsigned v : *iter.second) {
-            if( i++ % 16 == 0)
-                ss << "\n\t";
-            ss << "0x" << v << ", ";
-        }
-        ss << "\n};\n\n";
-        ss << std::dec;
-    }
    
     int numGlobals = mGlobalRegisters.size();
     if(numGlobals > 0) {
@@ -1100,6 +1087,22 @@ void Translater::Prologue(std::stringstream& ss) {
     }
 
     ss << "\n";
+
+    for(auto iter : mConstValues) {
+        size_t size = iter.second->size();
+        int i = 0;
+        ss << "static const unsigned " << iter.first << "[" << size << "] = { " << std::hex;
+        for(unsigned v : *iter.second) {
+            if( i++ % 16 == 0)
+                ss << "\n\t";
+            ss << "0x" << v << ", ";
+        }
+        ss << "\n};\n\n";
+        ss << std::dec;
+        mGlobalRegisters.emplace(iter.first, iter.second->size());
+        delete iter.second;
+    }
+    mConstValues.clear();
 
     for(auto f : mFunctions) {
         ss << "static void " << f->GetName() << "(DisasContext *ctx, TCGv r0";
