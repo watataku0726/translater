@@ -11,7 +11,7 @@
 
 
 Translater::Translater(const std::string& filename) 
-    :mFileName(filename), mOption(nullptr), mStackFlag(false), mHelperFlag(0), mNumA(0), mNumTmps(0)
+    :mFileName(filename), mOption(nullptr), mStackFlag(false), mHelperFlag(0)
 {
     mFunctions.clear();
     mContents.clear();
@@ -149,14 +149,14 @@ bool Translater::GetSubString(const std::string& line, std::string &name, const 
     return false;
 }
 
-int Translater::GetRegNumber(const std::string& reg) {
+int Translater::GetRegNumber(const std::string& reg, int function_number) {
     int idx = -1;
     if(reg[0] == 't' && reg[1] == 'm' && reg[2] == 'p') {
         idx = atol(reg.c_str() + 3) - 1;
-        mNumTmps = idx + 1 > mNumTmps ? idx + 1 : mNumTmps;
+        mFunctions[function_number]->SetNumTmp(idx + 1);
     } else if(reg[0] == 'a') {
         idx = atol(reg.c_str() + 1) + NUMBER_OF_TMP_REGISTERS;
-        mNumA = idx - NUMBER_OF_TMP_REGISTERS + 1 > mNumA ? idx - NUMBER_OF_TMP_REGISTERS + 1 : mNumA;
+        mFunctions[function_number]->SetNumA(idx - NUMBER_OF_TMP_REGISTERS + 1);
     } else if(reg[0] == 'r') {
         idx = MAX_GLOBAL_ASSIGNED_REIGSTERS - 1;
     }
@@ -468,7 +468,7 @@ void Translater::NormalStatement(int pos, std::stringstream& ss,  int& function_
     GetSubString(line.c_str() + offset, opcode, '\t');
     offset += opcode.size() + 1;
     GetSubString(line.c_str() + offset, rd, ',');
-    int rd_number = GetRegNumber(rd);
+    int rd_number = GetRegNumber(rd, function_number);
     if(opcode == "add") {
         std::string rs1, rs2;
         offset += rd.size() + 2;
@@ -476,8 +476,8 @@ void Translater::NormalStatement(int pos, std::stringstream& ss,  int& function_
         offset += rs1.size() + 2;
         GetSubString(line.c_str() + offset, rs2, '.');
 
-        int rs1_number = GetRegNumber(rs1);
-        int rs2_number = GetRegNumber(rs2);
+        int rs1_number = GetRegNumber(rs1, function_number);
+        int rs2_number = GetRegNumber(rs2, function_number);
         Register::AssignState rs1State = GetAssignState(rs1_number);
         Register::AssignState rs2State = GetAssignState(rs2_number);
         if(rs2State == Register::AssignState::None) {
@@ -580,6 +580,14 @@ void Translater::NormalStatement(int pos, std::stringstream& ss,  int& function_
         GetSubString(line.c_str() + offset, imm, '.');
         ss << "\ttcg_gen_movi_tl(" << rd << ", " << imm << ");\n"; 
         
+    } else if(opcode == "mov") {
+        FreeAssign(rd_number);
+        std::string op1;
+        offset += rd.size() + 2;
+        GetSubString(line.c_str() + offset, op1, '.');
+        GetRegNumber(op1, function_number);
+        ss << "\ttcg_gen_movi_tl(" << rd << ", " << op1 << ");\n"; 
+        
     } else {
         std::string op1, op2, op3, op4;
         GetSubString(line.c_str() + offset, op1, ',');
@@ -587,19 +595,19 @@ void Translater::NormalStatement(int pos, std::stringstream& ss,  int& function_
         GetSubString(line.c_str() + offset, op2, ',');
         offset += op2.size() + 2;
         if(op1[0] == 'T') {
-            FreeAssign(GetRegNumber(op2));
+            FreeAssign(GetRegNumber(op2, function_number));
             GetSubString(line.c_str() + offset, op3, ',');
             offset += op3.size() + 2;
             GetSubString(line.c_str() + offset, op4, '.');
             ss << "\ttcg_gen_" << opcode << "_tl(" << op1 << ", " << op2 << ", " << op3 << ", " << op4 << ");\n";
-            GetRegNumber(op3);
-            GetRegNumber(op4);
+            GetRegNumber(op3, function_number);
+            GetRegNumber(op4, function_number);
         } else {
-            FreeAssign(GetRegNumber(op1));
+            FreeAssign(GetRegNumber(op1, function_number));
             GetSubString(line.c_str() + offset, op3, '.');
             ss << "\ttcg_gen_" << opcode << "_tl(" << op1 << ", " << op2 << ", " << op3  << ");\n";
-            GetRegNumber(op2);
-            GetRegNumber(op3);
+            GetRegNumber(op2, function_number);
+            GetRegNumber(op3, function_number);
         }   
     }
 }
@@ -636,11 +644,11 @@ void Translater::EndStatement(int pos, std::stringstream& ss,  std::stringstream
 #endif
     mStackFlag = false;
     const Function* f = mFunctions[function_number];
-    for(int i = 1; i <= mNumTmps; ++i) {
+    for(int i = 1; i <= f->GetNumTmp(); ++i) {
         ss  << "\tTCGv tmp" << i << " = tcg_temp_new();\n";
     }
         
-    for(int i = f->GetNumArgs(); i < mNumA; ++i) {
+    for(int i = f->GetNumArgs(); i < f->GetNumA(); ++i) {
         ss  << "\tTCGv a" << i << " = tcg_temp_new();\n";
     }
     ss << "\n";
@@ -675,7 +683,7 @@ void Translater::LoadStatement(int pos, std::stringstream& ss,  int& function_nu
     if(op1[0] == 'r' && op1[1] == 'a' && op1[2] == '\0')
         return;
     offset += op1.size() + 2;
-    GetRegNumber(op1);
+    GetRegNumber(op1, function_number);
     GetSubString(line.c_str() + offset, imm, '(');
     offset += imm.size() + 1;
     GetSubString(line.c_str() + offset, op2, ')');
@@ -700,10 +708,10 @@ void Translater::LoadStatement(int pos, std::stringstream& ss,  int& function_nu
             }
         }
     } else {
-        int op2_number = GetRegNumber(op2);
+        int op2_number = GetRegNumber(op2, function_number);
         const Register& reg = mAssignedRegisters[op2_number];
         if(reg.assignState == Register::AssignState::Global) {
-            if(idx) {
+            if(reg.indexglobalRegister == "") {
                 ss << "\ttcg_gen_mov_tl(" << op1 << ", " << reg.globalRegister << "[" << idx <<"]);\n";
             } else {
                 if(reg.arraySize != 1 && reg.indexglobalRegister != "") {
@@ -711,7 +719,7 @@ void Translater::LoadStatement(int pos, std::stringstream& ss,  int& function_nu
                         << "\ttcg_gen_srai_tl(" << reg.indexglobalRegister << ", "
                         << reg.indexglobalRegister << ", " << WORDSIZE_SHIFT << ");\n" 
                         << "\tLOAD_ARRAY(ctx, " << op1 << ", " << reg.globalRegister << ", "  << reg.arraySize << ", "
-                        << reg.indexglobalRegister << ");\n";
+                        << reg.indexglobalRegister << ", " << idx << ");\n";
 
                     if(op1 != reg.indexglobalRegister)
                         ss  << "\ttcg_gen_shli_tl(" << reg.indexglobalRegister << ", "
@@ -725,7 +733,7 @@ void Translater::LoadStatement(int pos, std::stringstream& ss,  int& function_nu
                 }
             }
         } else if(reg.assignState == Register::AssignState::Const) {
-            if(idx) {
+            if(reg.indexglobalRegister == "") {
                 ss << "\ttcg_gen_mov_tl(" << op1 << ", " << reg.globalRegister << "[" << idx <<"]);\n";
             } else {
                 if(reg.indexglobalRegister != "") {
@@ -733,7 +741,7 @@ void Translater::LoadStatement(int pos, std::stringstream& ss,  int& function_nu
                         << "\ttcg_gen_srai_tl(" << reg.indexglobalRegister << ", "
                         << reg.indexglobalRegister << ", " << WORDSIZE_SHIFT << ");\n" 
                         << "\tLOAD_ARRAY_CONST(ctx, " << op1 << ", " << reg.globalRegister << ", "  << reg.arraySize << ", "
-                        << reg.indexglobalRegister << ");\n";
+                        << reg.indexglobalRegister << "," << idx << ");\n";
 
                     if(op1 != reg.indexglobalRegister)
                         ss  << "\ttcg_gen_shli_tl(" << reg.indexglobalRegister << ", "
@@ -762,7 +770,7 @@ void Translater::LoadStatement(int pos, std::stringstream& ss,  int& function_nu
             ss  << "\t/*End STACK POINTER ACCESS*/\n\n";
         } 
     }
-    FreeAssign(GetRegNumber(op1));
+    FreeAssign(GetRegNumber(op1, function_number));
 }
 
 void Translater::StoreStatement(int pos, std::stringstream& ss,  int& function_number) {
@@ -783,7 +791,7 @@ void Translater::StoreStatement(int pos, std::stringstream& ss,  int& function_n
 
     if(op2[0] == 'r' && op2[1] == 'a' && op2[2] == ' ')
         return;
-    GetRegNumber(op2);
+    GetRegNumber(op2, function_number);
     int idx = atol(imm.c_str()) >> WORDSIZE_SHIFT;
     const Function* func = mFunctions[function_number];
     if(op1 == "sp") {
@@ -804,10 +812,10 @@ void Translater::StoreStatement(int pos, std::stringstream& ss,  int& function_n
             }
         }
     } else {
-        int op1_number = GetRegNumber(op1);
+        int op1_number = GetRegNumber(op1, function_number);
         const Register& reg = mAssignedRegisters[op1_number];
         if(reg.assignState == Register::AssignState::Global) {
-            if(idx) {
+            if(reg.indexglobalRegister == "") {
                 ss << "\ttcg_gen_mov_tl(" << reg.globalRegister << "[" << idx <<"], " << op2 << ");\n";
             } else {
                 if(reg.arraySize != 1 && reg.indexglobalRegister != "") {
@@ -815,7 +823,7 @@ void Translater::StoreStatement(int pos, std::stringstream& ss,  int& function_n
                         << "\ttcg_gen_sari_tl(" << reg.indexglobalRegister << ", "
                         << reg.indexglobalRegister << ", " << WORDSIZE_SHIFT << ");\n" 
                         << "\tSTORE_ARRAY(ctx, " << reg.globalRegister << ", "  << reg.arraySize << ", "
-                        << reg.indexglobalRegister << ", " << op2 <<  ");\n"
+                        << reg.indexglobalRegister << ", " <<  idx << ", " << op2 <<  ");\n"
                         << "\ttcg_gen_shli_tl(" << reg.indexglobalRegister << ", "
                         << reg.indexglobalRegister << ", " << WORDSIZE_SHIFT << ");\n" ;
                     ss  << "\t/*End ARRAY ACCESS*/\n\n";
@@ -857,7 +865,7 @@ void Translater::AssignStatement(int pos, std::stringstream& ss,  int& function_
     GetSubString(line.c_str() + offset, rd, ',');
     offset += rd.size() + 2;
     GetSubString(line.c_str() + offset, op, '.');
-    int rd_number = GetRegNumber(rd);
+    int rd_number = GetRegNumber(rd, function_number);
     if(op.size() > 3 && op[0] == '_' && op[1] == 'Z' && op[2] == 'L') {
         const char* str = op.c_str() + 3;
         std::stringstream lss;
@@ -950,7 +958,7 @@ void Translater::FrameStatement(int pos ,std::stringstream& ss, int& function_nu
         std::cerr << "Unknown Format : " << pos << " : " << line << std::endl;
     int idx = atol(imm.c_str()) >> WORDSIZE_SHIFT;
     const Function *f = mFunctions[function_number];
-    AssignFrame(GetRegNumber(rd), idx, f->GetMainStackSize());
+    AssignFrame(GetRegNumber(rd, function_number), idx, f->GetMainStackSize());
     
     ss << "\t/*Assign sp[" << idx << "] to " << rd << ".*/\n";
 }
@@ -1047,7 +1055,9 @@ void Translater::GenerateHelpers(std::stringstream& ss) {
     if(mHelperFlag & HelperFlag::LOAD_ARRAY) {
         ss  << "#if !defined(__HELPERS_LOAD_ARRAY__)\n"
             << "#define __HELPERS_LOAD_ARRAY__\n"
-            << "static void LOAD_ARRAY(DisasContext *ctx, TCGv rd, TCGv *array, int length, TCGv index) {\n"
+            << "static void LOAD_ARRAY(DisasContext *ctx, TCGv rd, TCGv *array, int length, TCGv index_reg, int offset) {\n"
+            << "\tTCGv index = tcg_temp_new();\n"
+            << "\ttcg_gen_addi_tl(index, index_reg, offset);\n"
             << "\tTCGLabel *local_labels[length];\n"
             << "\tfor(int i = 0; i < length; ++i) { local_labels[i] = gen_new_label(); }\n" 
             << "\tTCGLabel *local_end = gen_new_label();\n"
@@ -1067,7 +1077,9 @@ void Translater::GenerateHelpers(std::stringstream& ss) {
     if(mHelperFlag & HelperFlag::STORE_ARRAY) {
         ss  << "#if !defined(__HELPERS_STORE_ARRAY__)\n"
             << "#define __HELPERS_STORE_ARRAY__\n"
-            << "static void STORE_ARRAY(DisasContext *ctx, TCGv *array, int length, TCGv index, TCGv rs) {\n"
+            << "static void STORE_ARRAY(DisasContext *ctx, TCGv *array, int length, TCGv index_reg, int offset, TCGv rs) {\n"
+            << "\tTCGv index = tcg_temp_new();\n"
+            << "\ttcg_gen_addi_tl(index, index_reg, offset);\n"
             << "\tTCGLabel *local_labels[length];\n"
             << "\tfor(int i = 0; i < length; ++i) { local_labels[i] = gen_new_label(); }\n" 
             << "\tTCGLabel *local_end = gen_new_label();\n"
@@ -1127,7 +1139,9 @@ void Translater::GenerateHelpers(std::stringstream& ss) {
     if(mHelperFlag & HelperFlag::LOAD_ARRAY_CONST) {
         ss  << "#if !defined(__HELPERS_LOAD_ARRAY_CONST__)\n"
             << "#define __HELPERS_LOAD_ARRAY_CONST__\n"
-            << "static void LOAD_ARRAY_CONST(DisasContext *ctx, TCGv rd, const unsigned *array, int length, TCGv index) {\n"
+            << "static void LOAD_ARRAY_CONST(DisasContext *ctx, TCGv rd, const unsigned *array, int length, TCGv index_reg, int offset) {\n"
+            << "\tTCGv index = tcg_temp_new();\n"
+            << "\ttcg_gen_addi_tl(index, index_reg, offset);\n"
             << "\tTCGLabel *local_labels[length];\n"
             << "\tfor(int i = 0; i < length; ++i) { local_labels[i] = gen_new_label(); }\n" 
             << "\tTCGLabel *local_end = gen_new_label();\n"

@@ -77,8 +77,6 @@ private:
     const std::string& mFileName;
     Option* mOption;
     int mHelperFlag;
-    int mNumTmps;
-    int mNumA;
     bool mStackFlag;
 
 private:
@@ -112,7 +110,7 @@ private:
         return GetSubString(line, name, ':');
     }
 
-    int GetRegNumber(const std::string& reg);
+    int GetRegNumber(const std::string& reg, int function_number);
     void FreeAssign(int reg_number);
     bool IsAssignedGlobal(int reg_number);
     bool IsAssignedFrame(int reg_number);

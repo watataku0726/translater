@@ -34,6 +34,11 @@ public:
     bool IsArgStackWriten() const { return WriteArgStack; }
     const std::string& GetName() const { return mFunctionName; }
     const std::vector<Label*>& GetLabels() const { return mLabels; }
+
+    void SetNumTmp(int num) { mNumTmp = num > mNumTmp ? num : mNumTmp; }
+    void SetNumA(int num) { mNumA = num > mNumA ? num : mNumA; }
+    int GetNumTmp() const { return mNumTmp; }
+    int GetNumA() const { return mNumA; }
 private:
     std::string mFunctionName;
     std::vector<Label*> mLabels;
@@ -43,6 +48,9 @@ private:
     int mNumLabels;
     int mNumArgs;
     int mMainStackSize;
+
+    int mNumTmp;
+    int mNumA;
 
     int mNumArgStacks;
     int mCurArgStackSize;
