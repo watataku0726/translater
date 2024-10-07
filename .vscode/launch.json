@@ -7,7 +7,7 @@
       "request": "launch",
       "program": "${workspaceRoot}/bin/${config:programName}_d",
       "args": [
-        "sha256.s",
+        "bitcnt.s",
         "-I${workspaceFolder}/include"
       ],
       "stopAtEntry": true,

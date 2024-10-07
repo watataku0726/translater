@@ -1,0 +1,10 @@
+let projectName = bitcnt;
+
+def bitcnt : Instruction {
+    if(rs1 == 100) {
+        let rd = 0;
+        while(rd != 100) {
+            let rd += 1;
+        }
+    } else let rd = bitcnt(rs1, rs2);
+}

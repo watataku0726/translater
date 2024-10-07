@@ -75,18 +75,24 @@ void Instruction::Anaylze(Option* option, std::stringstream& ss) {
     std::stringstream tmp_ss;
     mBlock->Analyze(option, this, tmp_ss, 1);
 
+    for(int i = 0; i < mNumLabel; ++i) {
+        ss << "\tTCGLabel *label" << i << " = gen_new_label();\n"; 
+        if(i == mNumLabel - 1)
+            ss << '\n';
+    } 
+
     ss  << "\tTCGv rd = get_gpr(ctx, a->rd, EXT_NONE);\n"
         << "\tTCGv rs1 = get_gpr(ctx, a->rs1, EXT_NONE);\n"
         << "\tTCGv rs2 = get_gpr(ctx, a->rs2, EXT_NONE);\n\n";
 
     for(int i = 0; i < mNumTmp; ++i) 
-        ss << "\tTCGv tmp" << i << " = tcg_temp_local_new();\n";
+        ss << "\tTCGv tmp" << i << " = tcg_temp_new();\n";
     for(int i = 0; i < mNumA; ++i) 
-        ss << "\tTCGv a" << i << " = tcg_temp_local_new();\n";
-    ss  << "\tTCGv r0 = tcg_temp_local_new();\n"
+        ss << "\tTCGv a" << i << " = tcg_temp_new();\n";
+    ss  << "\tTCGv r0 = tcg_temp_new();\n"
         << "\ttcg_gen_movi_tl(r0, 0);\n\n";
-    for(int i = 0; i < mNumLabel; ++i) 
-        ss << "\tTCGLabel *label" << i << " = gen_new_label();\n"; 
+
+        
     //ss << '\n';
 
     ss << tmp_ss.rdbuf();

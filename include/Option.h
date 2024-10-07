@@ -70,7 +70,7 @@ public:
     void error(const std::string& m);
 
     //const std::vector<const std::string*> GetRegisters() const { return mRegisters; }
-    const Translater* GetTranslater() const { return mTranslater; }
+    Translater* GetTranslater() const { return mTranslater; }
     void WriteInstruction(std::stringstream& ss);
 private:
     void scan_begin();

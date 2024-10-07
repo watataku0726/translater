@@ -115,14 +115,22 @@ void OptNode::Analyze(Option* option, Instruction* inst, std::stringstream& ss, 
         switch(mOp) {
             case OPCODE::OP_LOGAND:
                 ss << "LOGICAL_AND";
-                if(integier != nullptr)
+                if(integier != nullptr) {
                     ss << "i";
+                    option->GetTranslater()->UseHelper(Translater::HelperFlag::LOGICAL_ANDi);
+                } else 
+                    option->GetTranslater()->UseHelper(Translater::HelperFlag::LOGICAL_AND);
+                    
                 ss << "(tmp" << times++ << ", " << args.str() << ");";
                 break;
             case OPCODE::OP_LOGOR:
                 ss << "LOGICAL_OR";
-                if(integier != nullptr)
+                if(integier != nullptr) {
                     ss << "i";
+                    option->GetTranslater()->UseHelper(Translater::HelperFlag::LOGICAL_ORi);
+                } else 
+                    option->GetTranslater()->UseHelper(Translater::HelperFlag::LOGICAL_OR);
+                    
                 ss << "(tmp" << times++ << ", " << args.str() << ");";
                 break;
             case OPCODE::OP_EQ:
@@ -199,9 +207,11 @@ void OptNode::Analyze(Option* option, Instruction* inst, std::stringstream& ss, 
         switch(mOp) {
             case OPCODE::OP_LOGAND:
                 ss << "LOGICAL_AND(" << args.str();
+                option->GetTranslater()->UseHelper(Translater::HelperFlag::LOGICAL_AND);
                 break;
             case OPCODE::OP_LOGOR:
                 ss << "LOGICAL_OR(" << args.str();
+                option->GetTranslater()->UseHelper(Translater::HelperFlag::LOGICAL_OR);
                 break;
             case OPCODE::OP_EQ:
                 ss << "tcg_gen_setcond_tl(TCG_COND_EQ, " << args.str();
@@ -302,7 +312,7 @@ void OptFunctionNode::Analyze(Option* option, Instruction* inst, std::stringstre
 
     for(int i = 0; i < depth; ++i)
         ss << '\t';
-    ss << *mString << "(r0";
+    ss << *mString << "(ctx, r0";
     for(int i = 0, e = numArgs > NUMBER_OF_A_REGISTERS ? NUMBER_OF_A_REGISTERS : numArgs; i < e;  ++i) {
 
         ss << ", a" << i;
@@ -320,7 +330,7 @@ void OptFunctionNode::Analyze(Option* option, Instruction* inst, std::stringstre
 void OptDecl::Analyze(Option* option, Instruction* inst, std::stringstream& ss, int depth) {
     for(int i = 0; i < depth; ++i)
         ss << '\t';
-    ss << "TCGv " << mValue->String() << " = tcg_temp_local_new();\n";
+    ss << "TCGv " << mValue->String() << " = tcg_temp_new();\n";
     inst->AddLocal(mValue->StringPtr(), 0);
 }
     

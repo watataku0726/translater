@@ -11,7 +11,7 @@
 
 
 Translater::Translater(const std::string& filename) 
-    :mFileName(filename), mOption(nullptr), mStackFlag(false)
+    :mFileName(filename), mOption(nullptr), mStackFlag(false), mHelperFlag(0), mNumA(0), mNumTmps(0)
 {
     mFunctions.clear();
     mContents.clear();
@@ -42,7 +42,7 @@ bool Translater::Initialize() {
     Analyze(ss);
 
     mOption = new Option(this);
-    int ret = mOption->compile("option.txt");
+    int ret = mOption->compile("bitcnt.option.txt");
 
     return true;
 }
@@ -74,7 +74,7 @@ void Translater::RunLoop() {
     }
 */
 #else
-    std::stringstream ss;
+    std::stringstream ss, tmpss;
 
     Prologue(ss);
 
@@ -82,39 +82,39 @@ void Translater::RunLoop() {
     bool stack_flag = false;
     for(std::string& line : mContents) {
         if(line[0] != '?' && line[0] != '!') {
-            ss << "\t" << line << "\n";
+            tmpss << "\t" << line << "\n";
             ++pos;
             line.clear();
             continue;
         } else if(line[0] == '!') {
-            NormalStatement(pos, ss, function_number);
+            NormalStatement(pos, tmpss, function_number);
             ++pos;
             line.clear();
             continue;
         }
         std::string opcode;
         GetSubString(line.substr(1), opcode, '\t');
-
+        
         if(opcode == "goto")
-            GotoStatement(pos, ss, function_number);
+            GotoStatement(pos, tmpss, function_number);
         else if(opcode == "ld")
-            LoadStatement(pos, ss, function_number);
+            LoadStatement(pos, tmpss, function_number);
         else if(opcode == "st")
-            StoreStatement(pos, ss, function_number);
+            StoreStatement(pos, tmpss, function_number);
         else if(opcode == "assign")
-            AssignStatement(pos, ss, function_number);
+            AssignStatement(pos, tmpss, function_number);
         else if(opcode == "stki")
-            StackStatement(pos, ss, function_number);
+            StackStatement(pos, tmpss, function_number);
         else if(opcode == "start")
             StartStatement(pos, ss, function_number);
         else if(opcode == "end")
-            EndStatement(pos, ss, function_number);
+            EndStatement(pos, ss, tmpss, function_number);
         else if(opcode == "frmi")
-            FrameStatement(pos, ss, function_number);
+            FrameStatement(pos, tmpss, function_number);
         else if(opcode == "ret")
-            ReturnStatement(pos, ss, function_number);
+            ReturnStatement(pos, tmpss, function_number);
         else if(opcode == "call")
-            CallStatement(pos, ss, function_number);
+            CallStatement(pos, tmpss, function_number);
         ++pos;
         line.clear();
     }
@@ -122,10 +122,12 @@ void Translater::RunLoop() {
 
     Epilogue(ss);
 
-    //std::cout << ss.str() << std::endl;
+    std::stringstream helperss;
+    GenerateHelpers(helperss);
 
-    std::ofstream file("outpu.c.inc");
-    file << ss.rdbuf();
+    //std::ofstream file("outpu.c.inc");
+    std::ofstream file("trans_bitcnt.c.inc");
+    file << helperss.rdbuf() <<ss.rdbuf();
 
 #endif
     
@@ -151,8 +153,10 @@ int Translater::GetRegNumber(const std::string& reg) {
     int idx = -1;
     if(reg[0] == 't' && reg[1] == 'm' && reg[2] == 'p') {
         idx = atol(reg.c_str() + 3) - 1;
+        mNumTmps = idx + 1 > mNumTmps ? idx + 1 : mNumTmps;
     } else if(reg[0] == 'a') {
         idx = atol(reg.c_str() + 1) + NUMBER_OF_TMP_REGISTERS;
+        mNumA = idx - NUMBER_OF_TMP_REGISTERS + 1 > mNumA ? idx - NUMBER_OF_TMP_REGISTERS + 1 : mNumA;
     } else if(reg[0] == 'r') {
         idx = MAX_GLOBAL_ASSIGNED_REIGSTERS - 1;
     }
@@ -569,11 +573,34 @@ void Translater::NormalStatement(int pos, std::stringstream& ss,  int& function_
             
         }
 #endif
-    } else {
+    } else if(opcode == "movi") {
         FreeAssign(rd_number);
-        std::string ops;
-        GetSubString(line.c_str() + offset, ops, '.');
-        ss << "\ttcg_gen_" << opcode << "_tl(" << ops << ");\n";
+        std::string imm;
+        offset += rd.size() + 2;
+        GetSubString(line.c_str() + offset, imm, '.');
+        ss << "\ttcg_gen_movi_tl(" << rd << ", " << imm << ");\n"; 
+        
+    } else {
+        std::string op1, op2, op3, op4;
+        GetSubString(line.c_str() + offset, op1, ',');
+        offset += op1.size() + 2;
+        GetSubString(line.c_str() + offset, op2, ',');
+        offset += op2.size() + 2;
+        if(op1[0] == 'T') {
+            FreeAssign(GetRegNumber(op2));
+            GetSubString(line.c_str() + offset, op3, ',');
+            offset += op3.size() + 2;
+            GetSubString(line.c_str() + offset, op4, '.');
+            ss << "\ttcg_gen_" << opcode << "_tl(" << op1 << ", " << op2 << ", " << op3 << ", " << op4 << ");\n";
+            GetRegNumber(op3);
+            GetRegNumber(op4);
+        } else {
+            FreeAssign(GetRegNumber(op1));
+            GetSubString(line.c_str() + offset, op3, '.');
+            ss << "\ttcg_gen_" << opcode << "_tl(" << op1 << ", " << op2 << ", " << op3  << ");\n";
+            GetRegNumber(op2);
+            GetRegNumber(op3);
+        }   
     }
 }
 
@@ -594,12 +621,7 @@ void Translater::StartStatement(int pos, std::stringstream& ss,  int& function_n
     } 
     ss << ") {\n";
 
-    for(int i = 1; i <= NUMBER_OF_TMP_REGISTERS; ++i)
-        ss << "\tTCGv tmp" << i << " = tcg_temp_local_new();\n";
-    for(int i = f->GetNumArgs(); i < NUMBER_OF_A_REGISTERS; ++i) {
-        ss << "\tTCGv a" << i << " = tcg_temp_local_new();\n";
-    }
-    ss << "\n";
+
 
     for(Label* label : f->GetLabels()) {
         ss << "\tTCGLabel *" << label->name <<" = " << "gen_new_label();\n";
@@ -608,11 +630,22 @@ void Translater::StartStatement(int pos, std::stringstream& ss,  int& function_n
 }
 
 #if(1)
-void Translater::EndStatement(int pos, std::stringstream& ss,  int& function_number) {
+void Translater::EndStatement(int pos, std::stringstream& ss,  std::stringstream& tmp_ss, int& function_number) {
 #if !defined(NDEBUG) && (0)
     std::cout << pos << " : " << "end" << std::endl;
 #endif
     mStackFlag = false;
+    const Function* f = mFunctions[function_number];
+    for(int i = 1; i <= mNumTmps; ++i) {
+        ss  << "\tTCGv tmp" << i << " = tcg_temp_new();\n";
+    }
+        
+    for(int i = f->GetNumArgs(); i < mNumA; ++i) {
+        ss  << "\tTCGv a" << i << " = tcg_temp_new();\n";
+    }
+    ss << "\n";
+    ss << tmp_ss.rdbuf();
+    tmp_ss.clear();
     ss << "\n\tgen_set_label(end_label);\n}\n";
 }
 #endif
@@ -642,6 +675,7 @@ void Translater::LoadStatement(int pos, std::stringstream& ss,  int& function_nu
     if(op1[0] == 'r' && op1[1] == 'a' && op1[2] == '\0')
         return;
     offset += op1.size() + 2;
+    GetRegNumber(op1);
     GetSubString(line.c_str() + offset, imm, '(');
     offset += imm.size() + 1;
     GetSubString(line.c_str() + offset, op2, ')');
@@ -683,6 +717,7 @@ void Translater::LoadStatement(int pos, std::stringstream& ss,  int& function_nu
                         ss  << "\ttcg_gen_shli_tl(" << reg.indexglobalRegister << ", "
                             << reg.indexglobalRegister << ", " << WORDSIZE_SHIFT << ");\n";
                     ss << "\t/*End ARRAY ACCESS*/\n\n";
+                    mHelperFlag |= HelperFlag::LOAD_ARRAY;
                 } else if(reg.arraySize != 1) {
                     ss << "\ttcg_gen_mov_tl(" << op1 << ", " << reg.globalRegister << "[0]);\n";
                 } else {
@@ -704,6 +739,7 @@ void Translater::LoadStatement(int pos, std::stringstream& ss,  int& function_nu
                         ss  << "\ttcg_gen_shli_tl(" << reg.indexglobalRegister << ", "
                             << reg.indexglobalRegister << ", " << WORDSIZE_SHIFT << ");\n";
                     ss << "\t/*End ARRAY ACCESS*/\n\n";
+                    mHelperFlag |= HelperFlag::LOAD_ARRAY_CONST;
                 } else {
                     ss << "\ttcg_gen_mov_tl(" << op1 << ", " << reg.globalRegister << "[0]);\n";
                 }
@@ -715,6 +751,7 @@ void Translater::LoadStatement(int pos, std::stringstream& ss,  int& function_nu
                 ss  <<"\ttcg_gen_srai_tl(" << reg.indexglobalRegister << ", " 
                     << reg.indexglobalRegister << ", " << WORDSIZE_SHIFT <<");\n";
             ss  << "\tLOAD_FRAME_ARRAY(ctx, " << op1 << ", " << "sp" << ", " << reg.arraySize << ", " << reg.frameIdx;
+            mHelperFlag |= HelperFlag::LOAD_FRAME_ARRAY;
             if(hasindexreg)
                 ss << ", " << reg.indexglobalRegister;
             ss  << ");\n";
@@ -746,7 +783,7 @@ void Translater::StoreStatement(int pos, std::stringstream& ss,  int& function_n
 
     if(op2[0] == 'r' && op2[1] == 'a' && op2[2] == ' ')
         return;
-
+    GetRegNumber(op2);
     int idx = atol(imm.c_str()) >> WORDSIZE_SHIFT;
     const Function* func = mFunctions[function_number];
     if(op1 == "sp") {
@@ -782,6 +819,7 @@ void Translater::StoreStatement(int pos, std::stringstream& ss,  int& function_n
                         << "\ttcg_gen_shli_tl(" << reg.indexglobalRegister << ", "
                         << reg.indexglobalRegister << ", " << WORDSIZE_SHIFT << ");\n" ;
                     ss  << "\t/*End ARRAY ACCESS*/\n\n";
+                    mHelperFlag |= HelperFlag::STORE_ARRAY;
                 } else if(reg.arraySize != 1) {
                     ss << "\ttcg_gen_mov_tl(" << reg.globalRegister << "[0], " << op2 <<  ");\n";
                 } else {
@@ -795,6 +833,7 @@ void Translater::StoreStatement(int pos, std::stringstream& ss,  int& function_n
                 ss  <<"\ttcg_gen_srai_tl(" << reg.indexglobalRegister << ", " 
                     << reg.indexglobalRegister << ", " << WORDSIZE_SHIFT <<");\n";
             ss  << "\tSTORE_FRAME_ARRAY(ctx, " <<"sp" << ", " << reg.arraySize << ", " << reg.frameIdx;
+            mHelperFlag |= HelperFlag::STORE_FRAME_ARRAY;
             if(hasindexreg)
                 ss << ", " << reg.indexglobalRegister;
             ss  << ", " << op2 << ");\n"
@@ -850,7 +889,7 @@ void Translater::StackStatement(int pos, std::stringstream& ss,  int& function_n
             mStackFlag = false;
         }
         ss  << "\tTCGv " << sp <<"[" << size << "]; "
-            << "for(int i = 0; i < " << size << "; ++i) { " << sp <<"[i] = tcg_temp_local_new(); }\n\n";
+            << "for(int i = 0; i < " << size << "; ++i) { " << sp <<"[i] = tcg_temp_new(); }\n\n";
     }
 }
 
@@ -922,130 +961,7 @@ void Translater::FrameStatement(int pos ,std::stringstream& ss, int& function_nu
 /*======================================*/
 
 void Translater::Prologue(std::stringstream& ss) {
-    ss  << "/*=========================================================================================*/\n"
-        << "/*                          This file was generated by \"translater\".                       */\n"
-        << "/*=========================================================================================*/\n\n";
 
-    ss  << "#if !defined(__TCG_TRANSLATER_HELPERS__)\n"
-        << "#define __TCG_TRANSLATER_HELPERS__\n"
-        << "static void LOAD_ARRAY(DisasContext *ctx, TCGv rd, TCGv *array, int length, TCGv index) {\n"
-        << "\tTCGLabel *local_labels[length];\n"
-        << "\tfor(int i = 0; i < length; ++i) { local_labels[i] = gen_new_label(); }\n" 
-        << "\tTCGLabel *local_end = gen_new_label();\n"
-        << "\tfor(int i = 0; i < len; ++i) {\n"
-        << "\t\ttcg_gen_brcondi_tl(TCG_COND_EQ, index, i, local_labels[i]);\n"
-        << "\t}\n"
-        << "\ttcg_gen_brcondi_tl(TCG_COND_EQ, ctx->zero, 0x0, local_end);\n"
-        << "\tfor(int i = 0; i < length; ++i) {\n"
-        << "\t\tgen_set_label(local_labels[i]);\n"
-        << "\t\ttcg_gen_mov_tl(rd, array[i]);\n"
-        << "\t\ttcg_gen_brcondi_tl(TCG_COND_EQ, ctx->zero, 0x0, local_end);\n"
-        << "\t}\n"
-        << "}\n\n";
-
-    ss  << "static void STORE_ARRAY(DisasContext *ctx, TCGv *array, int length, TCGv index, TCGv rs) {\n"
-        << "\tTCGLabel *local_labels[length];\n"
-        << "\tfor(int i = 0; i < length; ++i) { local_labels[i] = gen_new_label(); }\n" 
-        << "\tTCGLabel *local_end = gen_new_label();\n"
-        << "\tfor(int i = 0; i < len; ++i) {\n"
-        << "\t\ttcg_gen_brcondi_tl(TCG_COND_EQ, index, i, local_labels[i]);\n"
-        << "\t}\n"
-        << "\ttcg_gen_brcondi_tl(TCG_COND_EQ, ctx->zero, 0x0, local_end);\n"
-        << "\tfor(int i = 0; i < length; ++i) {\n"
-        << "\t\tgen_set_label(local_labels[i]);\n"
-        << "\t\ttcg_gen_mov_tl(array[i], rs);\n"
-        << "\t\ttcg_gen_brcondi_tl(TCG_COND_EQ, ctx->zero, 0x0, local_end);\n"
-        << "\t}\n"
-        << "}\n\n";
-
-    ss  << "static void LOAD_FRAME_ARRAY(DisasContext *ctx, TCGv rd, TCGv *array, int length, int offset, TCGv index) {\n"
-        << "\tTCGLabel *local_labels[length];\n"
-        << "\tfor(int i = 0; i < length; ++i) { local_labels[i] = gen_new_label(); }\n" 
-        << "\tTCGLabel *local_end = gen_new_label();\n"
-        << "\tfor(int i = 0; i < len; ++i) {\n"
-        << "\t\ttcg_gen_brcondi_tl(TCG_COND_EQ, index, i, local_labels[i]);\n"
-        << "\t}\n"
-        << "\ttcg_gen_brcondi_tl(TCG_COND_EQ, ctx->zero, 0x0, local_end);\n"
-        << "\tfor(int i = 0; i < length; ++i) {\n"
-        << "\t\tgen_set_label(local_labels[i]);\n"
-        << "\t\ttcg_gen_mov_tl(rd, array[i + offset]);\n"
-        << "\t\ttcg_gen_brcondi_tl(TCG_COND_EQ, ctx->zero, 0x0, local_end);\n"
-        << "\t}\n"
-        << "}\n\n";
-
-    ss  << "static void STORE_FRAME_ARRAY(DisasContext *ctx, TCGv *array, int length, int offset, TCGv index, TCGv rs) {\n"
-        << "\tTCGLabel *local_labels[length];\n"
-        << "\tfor(int i = 0; i < length; ++i) { local_labels[i] = gen_new_label(); }\n" 
-        << "\tTCGLabel *local_end = gen_new_label();\n"
-        << "\tfor(int i = 0; i < len; ++i) {\n"
-        << "\t\ttcg_gen_brcondi_tl(TCG_COND_EQ, index, i, local_labels[i]);\n"
-        << "\t}\n"
-        << "\ttcg_gen_brcondi_tl(TCG_COND_EQ, ctx->zero, 0x0, local_end);\n"
-        << "\tfor(int i = 0; i < length; ++i) {\n"
-        << "\t\tgen_set_label(local_labels[i]);\n"
-        << "\t\ttcg_gen_mov_tl(array[i + offset], rs);\n"
-        << "\t\ttcg_gen_brcondi_tl(TCG_COND_EQ, ctx->zero, 0x0, local_end);\n"
-        << "\t}\n"
-        << "}\n\n";
-
-    ss  << "static void LOAD_ARRAY_CONST(DisasContext *ctx, TCGv rd, const unsigned *array, int length, TCGv index) {\n"
-        << "\tTCGLabel *local_labels[length];\n"
-        << "\tfor(int i = 0; i < length; ++i) { local_labels[i] = gen_new_label(); }\n" 
-        << "\tTCGLabel *local_end = gen_new_label();\n"
-        << "\tfor(int i = 0; i < len; ++i) {\n"
-        << "\t\ttcg_gen_brcondi_tl(TCG_COND_EQ, index, i, local_labels[i]);\n"
-        << "\t}\n"
-        << "\ttcg_gen_brcondi_tl(TCG_COND_EQ, ctx->zero, 0x0, local_end);\n"
-        << "\tfor(int i = 0; i < length; ++i) {\n"
-        << "\t\tgen_set_label(local_labels[i]);\n"
-        << "\t\ttcg_gen_movi_tl(rd, array[i]);\n"
-        << "\t\ttcg_gen_brcondi_tl(TCG_COND_EQ, ctx->zero, 0x0, local_end);\n"
-        << "\t}\n"
-        << "}\n\n";    
-    
-    ss  << "static void LOGICAL_AND(DisasContext *ctx, TCGv rd, TCGv rs1, TCGv rs2){\n"
-        << "\tTCGvLabel *label = gen_new_label();\n"
-        << "\ttcg_gen_movi_tl(rd, 0);\n"
-        << "\ttcg_gen_brcondi(TCG_COND_EQ, rs1, 0x0, label);\n"
-        << "\ttcg_gen_brcondi(TCG_COND_EQ, rs2, 0x0, label);\n"
-        << "\ttcg_gen_movi_tl(rd, 1);\n"
-        << "\tgen_set_label(label1);\n"
-        << "}\n\n";
-  
-
-    ss  << "static void LOGICAL_OR(DisasContext *ctx, TCGv rd, TCGv rs1, TCGv rs2){\n"
-        << "\tTCGvLabel *label = gen_new_label();\n"
-        << "\ttcg_gen_movi_tl(rd, 1);\n"
-        << "\ttcg_gen_brcondi(TCG_COND_NE, rs1, 0x0, label);\n"
-        << "\ttcg_gen_brcondi(TCG_COND_NE, rs2, 0x0, label);\n"
-        << "\ttcg_gen_movi_tl(rd, 0);\n"
-        << "\tgen_set_label(label1);\n"
-        << "}\n\n";
-
-        ss  << "static void LOGICAL_ANDi(DisasContext *ctx, TCGv rd, TCGv rs1, int imm){\n"
-        << "\tTCGvLabel *label = gen_new_label();\n"
-        << "\tTCGv rs2 = tcg_temp_local_new();\n"
-        << "\ttcg_gen_movi_tl(rs2, imm);\n"
-        << "\ttcg_gen_movi_tl(rd, 0);\n"
-        << "\ttcg_gen_brcondi(TCG_COND_EQ, rs1, 0x0, label);\n"
-        << "\ttcg_gen_brcondi(TCG_COND_EQ, rs2, 0x0, label);\n"
-        << "\ttcg_gen_movi_tl(rd, 1);\n"
-        << "\tgen_set_label(label1);\n"
-        << "}\n\n";
-  
-
-    ss  << "static void LOGICAL_ORi(DisasContext *ctx, TCGv rd, TCGv rs1, int imm){\n"
-        << "\tTCGvLabel *label = gen_new_label();\n"
-        << "\tTCGv rs2 = tcg_temp_local_new();\n"
-        << "\ttcg_gen_movi_tl(rs2, imm);\n"
-        << "\ttcg_gen_movi_tl(rd, 1);\n"
-        << "\ttcg_gen_brcondi(TCG_COND_NE, rs1, 0x0, label);\n"
-        << "\ttcg_gen_brcondi(TCG_COND_NE, rs2, 0x0, label);\n"
-        << "\ttcg_gen_movi_tl(rd, 0);\n"
-        << "\tgen_set_label(label1);\n"
-        << "}\n"
-        << "#endif // !__TCG_TRANSLATER_HELPERS__\n\n";
-   
     int numGlobals = mGlobalRegisters.size();
     if(numGlobals > 0) {
         ss << "static TCGv";
@@ -1121,4 +1037,171 @@ void Translater::Prologue(std::stringstream& ss) {
 void Translater::Epilogue(std::stringstream& ss) {
     ss << '\n';
     mOption->WriteInstruction(ss);
+}
+
+void Translater::GenerateHelpers(std::stringstream& ss) {
+    ss  << "/*=========================================================================================*/\n"
+        << "/*                          This file was generated by \"translater\".                       */\n"
+        << "/*=========================================================================================*/\n\n";
+
+    if(mHelperFlag & HelperFlag::LOAD_ARRAY) {
+        ss  << "#if !defined(__HELPERS_LOAD_ARRAY__)\n"
+            << "#define __HELPERS_LOAD_ARRAY__\n"
+            << "static void LOAD_ARRAY(DisasContext *ctx, TCGv rd, TCGv *array, int length, TCGv index) {\n"
+            << "\tTCGLabel *local_labels[length];\n"
+            << "\tfor(int i = 0; i < length; ++i) { local_labels[i] = gen_new_label(); }\n" 
+            << "\tTCGLabel *local_end = gen_new_label();\n"
+            << "\tfor(int i = 0; i < length; ++i) {\n"
+            << "\t\ttcg_gen_brcondi_tl(TCG_COND_EQ, index, i, local_labels[i]);\n"
+            << "\t}\n"
+            << "\ttcg_gen_brcondi_tl(TCG_COND_EQ, ctx->zero, 0x0, local_end);\n"
+            << "\tfor(int i = 0; i < length; ++i) {\n"
+            << "\t\tgen_set_label(local_labels[i]);\n"
+            << "\t\ttcg_gen_mov_tl(rd, array[i]);\n"
+            << "\t\ttcg_gen_brcondi_tl(TCG_COND_EQ, ctx->zero, 0x0, local_end);\n"
+            << "\t}\n"
+            << "}\n"
+            << "#endif //!__HELPERS_LOAD_ARRAY__\n\n";
+    }
+
+    if(mHelperFlag & HelperFlag::STORE_ARRAY) {
+        ss  << "#if !defined(__HELPERS_STORE_ARRAY__)\n"
+            << "#define __HELPERS_STORE_ARRAY__\n"
+            << "static void STORE_ARRAY(DisasContext *ctx, TCGv *array, int length, TCGv index, TCGv rs) {\n"
+            << "\tTCGLabel *local_labels[length];\n"
+            << "\tfor(int i = 0; i < length; ++i) { local_labels[i] = gen_new_label(); }\n" 
+            << "\tTCGLabel *local_end = gen_new_label();\n"
+            << "\tfor(int i = 0; i < length; ++i) {\n"
+            << "\t\ttcg_gen_brcondi_tl(TCG_COND_EQ, index, i, local_labels[i]);\n"
+            << "\t}\n"
+            << "\ttcg_gen_brcondi_tl(TCG_COND_EQ, ctx->zero, 0x0, local_end);\n"
+            << "\tfor(int i = 0; i < length; ++i) {\n"
+            << "\t\tgen_set_label(local_labels[i]);\n"
+            << "\t\ttcg_gen_mov_tl(array[i], rs);\n"
+            << "\t\ttcg_gen_brcondi_tl(TCG_COND_EQ, ctx->zero, 0x0, local_end);\n"
+            << "\t}\n"
+            << "}\n"
+            << "#endif //!__HELPERS_STORE_ARRAY__\n\n";
+    }
+
+    if(mHelperFlag & HelperFlag::LOAD_FRAME_ARRAY) {
+        ss  << "#if !defined(__HELPERS_LOAD_FRAME_ARRAY__)\n"
+            << "#define __HELPERS_LOAD_FRAME_ARRAY__\n"
+            << "static void LOAD_FRAME_ARRAY(DisasContext *ctx, TCGv rd, TCGv *array, int length, int offset, TCGv index) {\n"
+            << "\tTCGLabel *local_labels[length];\n"
+            << "\tfor(int i = 0; i < length; ++i) { local_labels[i] = gen_new_label(); }\n" 
+            << "\tTCGLabel *local_end = gen_new_label();\n"
+            << "\tfor(int i = 0; i < length; ++i) {\n"
+            << "\t\ttcg_gen_brcondi_tl(TCG_COND_EQ, index, i, local_labels[i]);\n"
+            << "\t}\n"
+            << "\ttcg_gen_brcondi_tl(TCG_COND_EQ, ctx->zero, 0x0, local_end);\n"
+            << "\tfor(int i = 0; i < length; ++i) {\n"
+            << "\t\tgen_set_label(local_labels[i]);\n"
+            << "\t\ttcg_gen_mov_tl(rd, array[i + offset]);\n"
+            << "\t\ttcg_gen_brcondi_tl(TCG_COND_EQ, ctx->zero, 0x0, local_end);\n"
+            << "\t}\n"
+            << "}\n"
+            << "#endif //!__HELPERS_LOAD_FRAME_ARRAY__\n\n";
+    }
+
+    if(mHelperFlag & HelperFlag::STORE_FRAME_ARRAY) {
+        ss  << "#if !defined(__HELPERS_STORE_FRAME_ARRAY__)\n"
+            << "#define __HELPERS_STORE_FRAME_ARRAY__\n"
+            << "static void STORE_FRAME_ARRAY(DisasContext *ctx, TCGv *array, int length, int offset, TCGv index, TCGv rs) {\n"
+            << "\tTCGLabel *local_labels[length];\n"
+            << "\tfor(int i = 0; i < length; ++i) { local_labels[i] = gen_new_label(); }\n" 
+            << "\tTCGLabel *local_end = gen_new_label();\n"
+            << "\tfor(int i = 0; i < length; ++i) {\n"
+            << "\t\ttcg_gen_brcondi_tl(TCG_COND_EQ, index, i, local_labels[i]);\n"
+            << "\t}\n"
+            << "\ttcg_gen_brcondi_tl(TCG_COND_EQ, ctx->zero, 0x0, local_end);\n"
+            << "\tfor(int i = 0; i < length; ++i) {\n"
+            << "\t\tgen_set_label(local_labels[i]);\n"
+            << "\t\ttcg_gen_mov_tl(array[i + offset], rs);\n"
+            << "\t\ttcg_gen_brcondi_tl(TCG_COND_EQ, ctx->zero, 0x0, local_end);\n"
+            << "\t}\n"
+            << "}\n"
+            << "#endif //!__HELPERS_STORE_FRAME_ARRAY__\n\n";
+    }
+
+    if(mHelperFlag & HelperFlag::LOAD_ARRAY_CONST) {
+        ss  << "#if !defined(__HELPERS_LOAD_ARRAY_CONST__)\n"
+            << "#define __HELPERS_LOAD_ARRAY_CONST__\n"
+            << "static void LOAD_ARRAY_CONST(DisasContext *ctx, TCGv rd, const unsigned *array, int length, TCGv index) {\n"
+            << "\tTCGLabel *local_labels[length];\n"
+            << "\tfor(int i = 0; i < length; ++i) { local_labels[i] = gen_new_label(); }\n" 
+            << "\tTCGLabel *local_end = gen_new_label();\n"
+            << "\tfor(int i = 0; i < length; ++i) {\n"
+            << "\t\ttcg_gen_brcondi_tl(TCG_COND_EQ, index, i, local_labels[i]);\n"
+            << "\t}\n"
+            << "\ttcg_gen_brcondi_tl(TCG_COND_EQ, ctx->zero, 0x0, local_end);\n"
+            << "\tfor(int i = 0; i < length; ++i) {\n"
+            << "\t\tgen_set_label(local_labels[i]);\n"
+            << "\t\ttcg_gen_movi_tl(rd, array[i]);\n"
+            << "\t\ttcg_gen_brcondi_tl(TCG_COND_EQ, ctx->zero, 0x0, local_end);\n"
+            << "\t}\n"
+            << "}\n"
+            << "#endif //!__HELPERS_LOAD_ARRAY_CONST__\n\n";  
+    }
+  
+    if(mHelperFlag & HelperFlag::LOGICAL_AND) {
+        ss  << "#if !defined(__HELPERS_LOGICAL_AND__)\n"
+            << "#define __HELPERS_LOGICAL_AND__\n"
+            << "static void LOGICAL_AND(DisasContext *ctx, TCGv rd, TCGv rs1, TCGv rs2){\n"
+            << "\tTCGvLabel *label = gen_new_label();\n"
+            << "\ttcg_gen_movi_tl(rd, 0);\n"
+            << "\ttcg_gen_brcondi(TCG_COND_EQ, rs1, 0x0, label);\n"
+            << "\ttcg_gen_brcondi(TCG_COND_EQ, rs2, 0x0, label);\n"
+            << "\ttcg_gen_movi_tl(rd, 1);\n"
+            << "\tgen_set_label(label);\n"
+            << "}\n"
+            << "#endif //!__HELPERS_LOGICAL_AND__\n\n";
+    }
+
+    if(mHelperFlag & HelperFlag::LOGICAL_OR) {
+        ss  << "#if !defined(__HELPERS_LOGICAL_OR__)\n"
+            << "#define __HELPERS_LOGICAL_OR__\n"
+            << "static void LOGICAL_OR(DisasContext *ctx, TCGv rd, TCGv rs1, TCGv rs2){\n"
+            << "\tTCGvLabel *label = gen_new_label();\n"
+            << "\ttcg_gen_movi_tl(rd, 1);\n"
+            << "\ttcg_gen_brcondi(TCG_COND_NE, rs1, 0x0, label);\n"
+            << "\ttcg_gen_brcondi(TCG_COND_NE, rs2, 0x0, label);\n"
+            << "\ttcg_gen_movi_tl(rd, 0);\n"
+            << "\tgen_set_label(label);\n"
+            << "}\n"
+            << "#endif //!__HELPERS_LOGICAL_OR__\n\n";
+    }
+
+    if(mHelperFlag & HelperFlag::LOGICAL_ANDi) {
+        ss  << "#if !defined(__HELPERS_LOGICAL_AND_I__)\n"
+            << "#define __HELPERS_LOGICAL_AND_I__\n"
+            << "static void LOGICAL_ANDi(DisasContext *ctx, TCGv rd, TCGv rs1, int imm){\n"
+            << "\tTCGvLabel *label = gen_new_label();\n"
+            << "\tTCGv rs2 = tcg_temp_new();\n"
+            << "\ttcg_gen_movi_tl(rs2, imm);\n"
+            << "\ttcg_gen_movi_tl(rd, 0);\n"
+            << "\ttcg_gen_brcondi(TCG_COND_EQ, rs1, 0x0, label);\n"
+            << "\ttcg_gen_brcondi(TCG_COND_EQ, rs2, 0x0, label);\n"
+            << "\ttcg_gen_movi_tl(rd, 1);\n"
+            << "\tgen_set_label(label);\n"
+            << "}\n"
+            << "#endif //!__HELPERS_LOGICAL_AND_I__\n\n";
+    }
+
+    if(mHelperFlag & HelperFlag::LOGICAL_ORi) {
+        ss  << "#if !defined(__HELPERS_LOGICAL_OR_I__)\n"
+            << "#define __HELPERS_LOGICAL_OR_I__\n"
+            << "static void LOGICAL_ORi(DisasContext *ctx, TCGv rd, TCGv rs1, int imm){\n"
+            << "\tTCGvLabel *label = gen_new_label();\n"
+            << "\tTCGv rs2 = tcg_temp_new();\n"
+            << "\ttcg_gen_movi_tl(rs2, imm);\n"
+            << "\ttcg_gen_movi_tl(rd, 1);\n"
+            << "\ttcg_gen_brcondi(TCG_COND_NE, rs1, 0x0, label);\n"
+            << "\ttcg_gen_brcondi(TCG_COND_NE, rs2, 0x0, label);\n"
+            << "\ttcg_gen_movi_tl(rd, 0);\n"
+            << "\tgen_set_label(label);\n"
+            << "}\n"
+            << "#endif // !__HELPERS_LOGICAL_OR_I__\n\n";
+    }
+
 }

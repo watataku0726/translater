@@ -20,6 +20,18 @@ class Function;
 
 class Translater {
 public:
+    enum HelperFlag {
+        LOAD_ARRAY = 1 << 0,
+        STORE_ARRAY = 1 << 1,
+        LOAD_FRAME_ARRAY = 1 << 2,
+        STORE_FRAME_ARRAY = 1 << 3,
+        LOAD_ARRAY_CONST = 1 << 4,
+        LOGICAL_AND = 1 << 5,
+        LOGICAL_OR = 1 << 6,
+        LOGICAL_ANDi= 1 << 7,
+        LOGICAL_ORi= 1 << 8,
+    };
+
     Translater(const std::string& filename);
     ~Translater();
 
@@ -29,6 +41,7 @@ public:
     int IsFunction(const std::string& name) const;
     int IsGlobalRegister(const std::string& name) const;
     void AddGlobalRegister(const std::string& name);
+    inline void UseHelper(HelperFlag flag) { mHelperFlag |= flag; }
 private:
     enum class State {
         InFunction = 0,
@@ -36,7 +49,8 @@ private:
         OutofFunction,
         InObject,
         InConstobject,
-    };     
+    };    
+
 
     struct Register {
         std::string globalRegister;
@@ -62,6 +76,9 @@ private:
     std::vector<Function*> mFunctions;
     const std::string& mFileName;
     Option* mOption;
+    int mHelperFlag;
+    int mNumTmps;
+    int mNumA;
     bool mStackFlag;
 
 private:
@@ -75,11 +92,12 @@ private:
     
     void Prologue(std::stringstream& ss);
     void Epilogue(std::stringstream& ss);
+    void GenerateHelpers(std::stringstream& ss);
 
     void NormalStatement(int pos, std::stringstream& ss,  int& function_number);
 
     void StartStatement(int pos, std::stringstream& ss,  int& function_number);
-    void EndStatement(int pos, std::stringstream& ss,  int& function_number);
+    void EndStatement(int pos, std::stringstream& ss,  std::stringstream& tmp_ss,  int& function_number);
     void GotoStatement(int pos, std::stringstream& ss,  int& function_number);
     void LoadStatement(int pos, std::stringstream& ss,  int& function_number);
     void StoreStatement(int pos, std::stringstream& ss,  int& function_number);
