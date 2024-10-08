@@ -10,9 +10,9 @@
 /*======================================*/
 
 
-Translater::Translater(const std::string& filename) 
-    :mFileName(filename), mOption(nullptr), mStackFlag(false), mHelperFlag(0)
-{
+Translater::Translater() 
+    :mOption(nullptr), mStackFlag(false), mHelperFlag(0), mOutputFile("")
+{   
     mFunctions.clear();
     mContents.clear();
     mGlobalRegisters.clear();
@@ -30,19 +30,105 @@ Translater::~Translater() {
     delete mOption;
 }
 
-bool Translater::Initialize() {
+bool Translater::Initialize(int argc, char** argv) {
+    enum InitializeState {
+        NORMAL,
+        OPTION,
+        OUTPUT,
+    } state = InitializeState::NORMAL;
+    char *asmfilename = nullptr;
+    char *optionfilename = nullptr;
+    for(++argv; argv[0]; ++argv) {
+        switch(state) {
+            case InitializeState::NORMAL:
+                if((*argv)[0] != '-')
+                    asmfilename = *argv;
+                else if((*argv)[1] != '-') {
+                    if((*argv)[1] != 'o' || (*argv)[2] != '\0') {
+                        std::cerr << "Unknown Argument : " << *argv << std::endl;
+                        return false;
+                    }
+                    state = InitializeState::OUTPUT;
+                } else {
+                    std::string str(*argv);
+                    if(str == "--output") 
+                        state = InitializeState::OUTPUT;
+                    else if(str == "--option")
+                        state = InitializeState::OPTION;
+                    else if(str == "--help") {
+                        Help();
+                        return false;
+                    }
+                    else if(str == "--version") {
+                        Version();
+                        return false;
+                    }
+                    else {
+                        std::cerr << "Unknown Argument : " << *argv << std::endl;
+                        return false;
+                    }
+                }
+                break;
 
-    std::ifstream file(mFileName);
+            case InitializeState::OPTION:
+                if((*argv)[0] == '-') {
+                    std::cerr << "missig filename after \'" <<  *(argv - 1) << "\'" << std::endl;
+                    return false;
+                } else {
+                    optionfilename = *argv;
+                    state = InitializeState::NORMAL;
+                }
+                break;
+
+            case InitializeState::OUTPUT:
+                if((*argv)[0] == '-') {
+                    std::cerr << "missig filename after \'" <<  *(argv - 1) << "\'" << std::endl;
+                    return false;
+                } else {
+                    mOutputFile = std::string(*argv);
+                    state = InitializeState::NORMAL;
+                }
+                break;
+
+            default:
+                return false;
+                break;
+        }
+    }
+
+    if(state != InitializeState::NORMAL) {
+        //std::cerr << "Unknown Argument Format" << std::endl;
+        std::cerr << "missig filename after \'" <<  *(argv - 1) << "\'" << std::endl;
+        return false;
+    }
+
+    if(!asmfilename) {
+        std::cerr << "translater: fatal error: no input file" << std::endl;
+        return false;
+    }
+    std::ifstream file(asmfilename);
     if(file.fail()){
-        std::cerr << "Failed to open file:" << mFileName << std::endl;
+        std::cerr << "Failed to open file: " << asmfilename << std::endl;
         return false;
     }
     std::stringstream ss;
     ss << file.rdbuf();
-    Analyze(ss);
+    if(!Analyze(ss)) {
+        std::cerr << "Unknonw Format File: "  << asmfilename << std::endl;
+        return false;
+    }
+    
+    if(!optionfilename) {
+        std::cerr << "translater: fatal error: no option file" << std::endl;
+        return false;
+    }
 
     mOption = new Option(this);
-    int ret = mOption->compile("bitcnt.option.txt");
+    bool ret = mOption->compile(optionfilename);
+    if(!ret) {
+        std::cerr << "option error" << std::endl;
+        return false;
+    }
 
     return true;
 }
@@ -126,7 +212,14 @@ void Translater::RunLoop() {
     GenerateHelpers(helperss);
 
     //std::ofstream file("outpu.c.inc");
-    std::ofstream file("trans_bitcnt.c.inc");
+    if(mOutputFile == "") {
+        std::string str = mOption->GetProjectName();
+        if(str == "")
+            mOutputFile = "trans_.c.inc";
+        else
+            mOutputFile = "trans_" + str + ".c.inc";
+    }
+    std::ofstream file(mOutputFile);
     file << helperss.rdbuf() <<ss.rdbuf();
 
 #endif
@@ -265,6 +358,11 @@ bool Translater::Analyze(std::stringstream& ss) {
     std::string line;
     int pos = 0;
     State state = State::OutofFunction;
+    if(std::getline(ss, line)) {
+        if(line != "\t.text")
+            return false;
+    }
+    
 
     while(std::getline(ss, line)) {
         if(line == "" || line[0] == '#')
@@ -716,14 +814,14 @@ void Translater::LoadStatement(int pos, std::stringstream& ss,  int& function_nu
             } else {
                 if(reg.arraySize != 1 && reg.indexglobalRegister != "") {
                     ss  << "\n\t/*ARRAY ACCESS*/\n"
-                        << "\ttcg_gen_srai_tl(" << reg.indexglobalRegister << ", "
-                        << reg.indexglobalRegister << ", " << WORDSIZE_SHIFT << ");\n" 
+                        //<< "\ttcg_gen_srai_tl(" << reg.indexglobalRegister << ", "
+                        //<< reg.indexglobalRegister << ", " << WORDSIZE_SHIFT << ");\n" 
                         << "\tLOAD_ARRAY(ctx, " << op1 << ", " << reg.globalRegister << ", "  << reg.arraySize << ", "
                         << reg.indexglobalRegister << ", " << idx << ");\n";
 
-                    if(op1 != reg.indexglobalRegister)
-                        ss  << "\ttcg_gen_shli_tl(" << reg.indexglobalRegister << ", "
-                            << reg.indexglobalRegister << ", " << WORDSIZE_SHIFT << ");\n";
+                    //if(op1 != reg.indexglobalRegister)
+                    //    ss  << "\ttcg_gen_shli_tl(" << reg.indexglobalRegister << ", "
+                    //        << reg.indexglobalRegister << ", " << WORDSIZE_SHIFT << ");\n";
                     ss << "\t/*End ARRAY ACCESS*/\n\n";
                     mHelperFlag |= HelperFlag::LOAD_ARRAY;
                 } else if(reg.arraySize != 1) {
@@ -738,14 +836,14 @@ void Translater::LoadStatement(int pos, std::stringstream& ss,  int& function_nu
             } else {
                 if(reg.indexglobalRegister != "") {
                     ss  << "\n\t/*ARRAY ACCESS*/\n"
-                        << "\ttcg_gen_srai_tl(" << reg.indexglobalRegister << ", "
-                        << reg.indexglobalRegister << ", " << WORDSIZE_SHIFT << ");\n" 
+                        //<< "\ttcg_gen_srai_tl(" << reg.indexglobalRegister << ", "
+                        //<< reg.indexglobalRegister << ", " << WORDSIZE_SHIFT << ");\n" 
                         << "\tLOAD_ARRAY_CONST(ctx, " << op1 << ", " << reg.globalRegister << ", "  << reg.arraySize << ", "
-                        << reg.indexglobalRegister << "," << idx << ");\n";
+                        << reg.indexglobalRegister << ", " << idx << ");\n";
 
-                    if(op1 != reg.indexglobalRegister)
-                        ss  << "\ttcg_gen_shli_tl(" << reg.indexglobalRegister << ", "
-                            << reg.indexglobalRegister << ", " << WORDSIZE_SHIFT << ");\n";
+                    //if(op1 != reg.indexglobalRegister)
+                    //    ss  << "\ttcg_gen_shli_tl(" << reg.indexglobalRegister << ", "
+                    //        << reg.indexglobalRegister << ", " << WORDSIZE_SHIFT << ");\n";
                     ss << "\t/*End ARRAY ACCESS*/\n\n";
                     mHelperFlag |= HelperFlag::LOAD_ARRAY_CONST;
                 } else {
@@ -820,12 +918,12 @@ void Translater::StoreStatement(int pos, std::stringstream& ss,  int& function_n
             } else {
                 if(reg.arraySize != 1 && reg.indexglobalRegister != "") {
                     ss  << "\n\t/*ARRAY ACCESS*/\n"
-                        << "\ttcg_gen_sari_tl(" << reg.indexglobalRegister << ", "
-                        << reg.indexglobalRegister << ", " << WORDSIZE_SHIFT << ");\n" 
+                        //<< "\ttcg_gen_sari_tl(" << reg.indexglobalRegister << ", "
+                        //<< reg.indexglobalRegister << ", " << WORDSIZE_SHIFT << ");\n" 
                         << "\tSTORE_ARRAY(ctx, " << reg.globalRegister << ", "  << reg.arraySize << ", "
-                        << reg.indexglobalRegister << ", " <<  idx << ", " << op2 <<  ");\n"
-                        << "\ttcg_gen_shli_tl(" << reg.indexglobalRegister << ", "
-                        << reg.indexglobalRegister << ", " << WORDSIZE_SHIFT << ");\n" ;
+                        << reg.indexglobalRegister << ", " <<  idx << ", " << op2 <<  ");\n";
+                        //<< "\ttcg_gen_shli_tl(" << reg.indexglobalRegister << ", "
+                        //<< reg.indexglobalRegister << ", " << WORDSIZE_SHIFT << ");\n" ;
                     ss  << "\t/*End ARRAY ACCESS*/\n\n";
                     mHelperFlag |= HelperFlag::STORE_ARRAY;
                 } else if(reg.arraySize != 1) {
@@ -1057,7 +1155,8 @@ void Translater::GenerateHelpers(std::stringstream& ss) {
             << "#define __HELPERS_LOAD_ARRAY__\n"
             << "static void LOAD_ARRAY(DisasContext *ctx, TCGv rd, TCGv *array, int length, TCGv index_reg, int offset) {\n"
             << "\tTCGv index = tcg_temp_new();\n"
-            << "\ttcg_gen_addi_tl(index, index_reg, offset);\n"
+            << "\ttcg_gen_srai_tl(index, index_reg, "<< WORDSIZE_SHIFT << ");\n"
+            << "\ttcg_gen_addi_tl(index, index, offset);\n"
             << "\tTCGLabel *local_labels[length];\n"
             << "\tfor(int i = 0; i < length; ++i) { local_labels[i] = gen_new_label(); }\n" 
             << "\tTCGLabel *local_end = gen_new_label();\n"
@@ -1079,7 +1178,8 @@ void Translater::GenerateHelpers(std::stringstream& ss) {
             << "#define __HELPERS_STORE_ARRAY__\n"
             << "static void STORE_ARRAY(DisasContext *ctx, TCGv *array, int length, TCGv index_reg, int offset, TCGv rs) {\n"
             << "\tTCGv index = tcg_temp_new();\n"
-            << "\ttcg_gen_addi_tl(index, index_reg, offset);\n"
+            << "\ttcg_gen_srai_tl(index, index_reg, "<< WORDSIZE_SHIFT << ");\n"
+            << "\ttcg_gen_addi_tl(index, index, offset);\n"
             << "\tTCGLabel *local_labels[length];\n"
             << "\tfor(int i = 0; i < length; ++i) { local_labels[i] = gen_new_label(); }\n" 
             << "\tTCGLabel *local_end = gen_new_label();\n"
@@ -1141,7 +1241,8 @@ void Translater::GenerateHelpers(std::stringstream& ss) {
             << "#define __HELPERS_LOAD_ARRAY_CONST__\n"
             << "static void LOAD_ARRAY_CONST(DisasContext *ctx, TCGv rd, const unsigned *array, int length, TCGv index_reg, int offset) {\n"
             << "\tTCGv index = tcg_temp_new();\n"
-            << "\ttcg_gen_addi_tl(index, index_reg, offset);\n"
+            << "\ttcg_gen_srai_tl(index, index_reg, "<< WORDSIZE_SHIFT << ");\n"
+            << "\ttcg_gen_addi_tl(index, index, offset);\n"
             << "\tTCGLabel *local_labels[length];\n"
             << "\tfor(int i = 0; i < length; ++i) { local_labels[i] = gen_new_label(); }\n" 
             << "\tTCGLabel *local_end = gen_new_label();\n"
@@ -1218,4 +1319,24 @@ void Translater::GenerateHelpers(std::stringstream& ss) {
             << "#endif // !__HELPERS_LOGICAL_OR_I__\n\n";
     }
 
+}
+
+/*======================================*/
+/*      Argument Help and Version       */
+/*======================================*/
+
+void Translater::Help() {
+    std::cout   << "Usage: translater [options] file...\n"
+                << "Options: \n"
+                << "\t--help\t\t\tDisplay this information.\n"
+                << "\t--version\t\tDisplay compiler version information\n"
+                << "\t-o <file>\t\tPlace the output into <file>.\n"
+                << "\t--option <file>\t\tSepcify <file> as an option file.\n"
+                << std::endl;
+}
+
+void Translater::Version() {
+    std::cout   << "translater beta version\n"
+                << "Copyright (C) 2023 Takuto Watanabe, Tokyo Institute of Technology\n"
+                << std::endl; 
 }

@@ -32,10 +32,10 @@ public:
         LOGICAL_ORi= 1 << 8,
     };
 
-    Translater(const std::string& filename);
+    Translater();
     ~Translater();
 
-    bool Initialize();
+    bool Initialize(int argc, char** argv);
     void RunLoop();
 
     int IsFunction(const std::string& name) const;
@@ -74,7 +74,7 @@ private:
     std::map<std::string, int> mFunctionTable;
     std::vector<std::string> mContents;
     std::vector<Function*> mFunctions;
-    const std::string& mFileName;
+    std::string mOutputFile;
     Option* mOption;
     int mHelperFlag;
     bool mStackFlag;
@@ -119,6 +119,9 @@ private:
     void AssignGlobal(int reg_number, const std::string& global_register_name, const std::string& index_reg_name = "");
     void AssignFrame(int reg_number, int index, int size, const std::string& index_reg_name = "");
     void AssignConst(int reg_number, const std::string& const_register_name, const std::string& index_reg_name = "");
+
+    void Help();
+    void Version();
 };
 
 #endif //!__TRANSLATER_H__

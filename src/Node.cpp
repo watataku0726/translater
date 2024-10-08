@@ -2,6 +2,7 @@
 #include "Option.h"
 #include "Translater.h"
 
+
 OptNode* OptNode::MakeNode(Option& option, const yy::location& l, OPCODE op, OptNode* left, OptNode* right) {
     if(right == nullptr) {
         return new OptNode(l, op, left);
@@ -93,22 +94,33 @@ void OptNode::Analyze(Option* option, Instruction* inst, std::stringstream& ss, 
     }
 
     if(value1 != nullptr) {
-        int ret = inst->IsLocal(option, value1->String());
-        if(ret < 0)
-            option->error(mL, "Unknown Local : " + value1->String());
-        if(value2 != nullptr) {
-            ret = inst->IsLocal(option, value1->String());
+        char islocalvalue1 = 0, islocalvalue2 = 0;
+        int ret = inst->IsLocal(value1->String());
+        if(ret < 0) {
+            ret = option->GetTranslater()->IsGlobalRegister(value1->String());
             if(ret < 0)
                 option->error(mL, "Unknown Local : " + value1->String());
+        } else 
+            islocalvalue1 = '_';
+            
+        if(value2 != nullptr) {
+            ret = inst->IsLocal(value2->String());
+            if(ret < 0) {
+                ret = option->GetTranslater()->IsGlobalRegister(value2->String());
+                if(ret < 0)
+                    option->error(mL, "Unknown Local : " + value1->String());
+            } else
+                islocalvalue2 = '_';
+                
         }
 
         for(int i = 0; i < depth; ++i)
             ss << '\t';
 
         std::stringstream args;
-        args << value1->String() + ", ";
+        args << value1->String() << (islocalvalue1 ? "_" : "") <<  ", ";
         if(value2 != nullptr)
-            args << value2->String();
+            args << value2->String() << (islocalvalue2 ? "_" : "");
         else if(integier != nullptr)
             args << integier->Value();
 
@@ -240,15 +252,19 @@ void OptNode::Analyze(Option* option, Instruction* inst, std::stringstream& ss, 
 }
 
 void OptValueNode::Analyze(Option* option, Instruction* inst, std::stringstream& ss, int depth, int& times) {
-    int ret = inst->IsLocal(option, *mString);
+    char islocal = 0;
+    int ret = inst->IsLocal(*mString);
     if(ret < 0) {
-        option->error(mL, "Unknown Local : " + *mString);
+        ret = option->GetTranslater()->IsGlobalRegister(*mString);
+        if(ret < 0)
+            option->error(mL, "Unknown Local : " + *mString);
         //return;
-    }
+    } else 
+        islocal = '_';
 
     for(int i = 0; i < depth; ++i)
         ss << '\t';
-    ss << "tcg_gen_mov_tl(tmp" << times++ << ", " << *mString << ");\n";
+    ss << "tcg_gen_mov_tl(tmp" << times++ << ", " << *mString << (islocal ? "_" : "") << ");\n";
 }
 
 void OptFunctionNode::Analyze(Option* option, Instruction* inst, std::stringstream& ss, int depth, int& times) {
@@ -330,27 +346,34 @@ void OptFunctionNode::Analyze(Option* option, Instruction* inst, std::stringstre
 void OptDecl::Analyze(Option* option, Instruction* inst, std::stringstream& ss, int depth) {
     for(int i = 0; i < depth; ++i)
         ss << '\t';
-    ss << "TCGv " << mValue->String() << " = tcg_temp_new();\n";
+    ss << "TCGv " << mValue->String() << '_' << " = tcg_temp_new();\n";
     inst->AddLocal(mValue->StringPtr(), 0);
 }
     
 
 void OptLet::Analyze(Option* option, Instruction* inst, std::stringstream& ss, int depth) {
-    if(inst->IsLocal(option, mValue->String()) == -1)
-        option->error(mL, "Unknown Local : " + mValue->String());
+    char islocal = 0;
+    int ret = inst->IsLocal(mValue->String());
+    if(ret < 0) {
+        ret = option->GetTranslater()->IsGlobalRegister(mValue->String());
+        if(ret < 0)
+            option->error(mL, "Unknown Local : " + mValue->String());
+    } else 
+        islocal = '_';
+        
 
     if(mExpr->Op() == OPCODE::OP_CONST) {
         for(int i = 0; i < depth; ++i)
             ss << '\t';
         switch(mOp) {
             case '=':
-                ss << "tcg_gen_movi_tl(" << mValue->String() << ", " << mExpr->Value() << ");\n";
+                ss << "tcg_gen_movi_tl(" << mValue->String() << (islocal ? "_" : "") << ", " << mExpr->Value() << ");\n";
                 break;
             case '+':
-                ss << "tcg_gen_addi_tl(" << mValue->String() << ", " << mValue->String() << ", " << mExpr->Value() << ");\n";
+                ss << "tcg_gen_addi_tl(" << mValue->String() << (islocal ? "_" : "") << ", " << mValue->String() << ", " << mExpr->Value() << ");\n";
                 break;
             case '-':
-                ss << "tcg_gen_addi_tl(" << mValue->String() << ", " << mValue->String() << ", -(" << mExpr->Value() << "));\n";
+                ss << "tcg_gen_addi_tl(" << mValue->String() << (islocal ? "_" : "") << ", " << mValue->String() << ", -(" << mExpr->Value() << "));\n";
                 break;
         }
     } else if (mExpr->Op() == OPCODE::OP_VALUE) {
@@ -358,13 +381,13 @@ void OptLet::Analyze(Option* option, Instruction* inst, std::stringstream& ss, i
             ss << '\t';
         switch(mOp) {
             case '=':
-                ss << "tcg_gen_mov_tl(" << mValue->String() << ", " << mExpr->String() << ");\n";
+                ss << "tcg_gen_mov_tl(" << mValue->String() << (islocal ? "_" : "") << ", " << mExpr->String() << ");\n";
                 break;
             case '+':
-                ss << "tcg_gen_add_tl(" << mValue->String() << ", " << mValue->String() << ", " << mExpr->String() << ");\n";
+                ss << "tcg_gen_add_tl(" << mValue->String() << (islocal ? "_" : "") << ", " << mValue->String() << ", " << mExpr->String() << ");\n";
                 break;
             case '-':
-                ss << "tcg_gen_sub_tl(" << mValue->String() << ", " << mValue->String() << ", " << mExpr->String() << ");\n";
+                ss << "tcg_gen_sub_tl(" << mValue->String() << (islocal ? "_" : "") << ", " << mValue->String() << ", " << mExpr->String() << ");\n";
                 break;
         }
     }else {
@@ -376,13 +399,13 @@ void OptLet::Analyze(Option* option, Instruction* inst, std::stringstream& ss, i
             ss << '\t';
         switch(mOp) {
             case '=':
-                ss << "tcg_gen_mov_tl(" << mValue->String() << ", tmp" << times - 1 << ");\n";
+                ss << "tcg_gen_mov_tl(" << mValue->String() << (islocal ? "_" : "")  << ", tmp" << times - 1 << ");\n";
                 break;
             case '+':
-                ss << "tcg_gen_add_tl(" << mValue->String() << ", " << mValue->String() << ", tmp" << times - 1 << ");\n";
+                ss << "tcg_gen_add_tl(" << mValue->String() << (islocal ? "_" : "") << ", " << mValue->String() << ", tmp" << times - 1 << ");\n";
                 break;
             case '-':
-                ss << "tcg_gen_sub_tl(" << mValue->String() << ", " << mValue->String() << ", tmp" << times - 1 << ");\n";
+                ss << "tcg_gen_sub_tl(" << mValue->String() << (islocal ? "_" : "") << ", " << mValue->String() << ", tmp" << times - 1 << ");\n";
                 break;
         }
     }
@@ -482,26 +505,49 @@ void OptBlockStatement::Analyze(Option* option, Instruction* inst, std::stringst
 }
 
 void OptLoadStatement::Analyze(Option* option, Instruction* inst, std::stringstream& ss, int depth) {
-    if(inst->IsLocal(option, mrd->String()) == -1) 
-        option->error("Unknown Local : " + mrd->String());
-
-    if(inst->IsLocal(option, mAddr->String()) == -1) 
-        option->error("Unknown Local : " + mAddr->String());
+    char islocalmrd = 0, islocalmAddr = 0;
+    int ret = inst->IsLocal(mrd->String());
+    if(ret < 0) {
+        ret = option->GetTranslater()->IsGlobalRegister(mrd->String());
+        if(ret < 0)
+            option->error("Unknown Local : " + mrd->String());
+    } else
+        islocalmrd = '_';
+        
+    ret = inst->IsLocal(mAddr->String());
+    if(ret < 0) {
+        ret = option->GetTranslater()->IsGlobalRegister(mAddr->String());
+        if(ret < 0)
+            option->error("Unknown Local : " + mAddr->String());
+    } else 
+        islocalmAddr = '_';
+        
 
     for(int i = 0; i < depth; ++i) 
         ss << '\t';
-    ss << "tcg_gen_qemu_ld_tl(" << mrd->String() << ", " << mAddr->String()  << ", ctx->mem_idx, MO_TUEL);\n";
+    ss << "tcg_gen_qemu_ld_tl(" << mrd->String() << (islocalmrd ? "_" : "") << ", " << mAddr->String() << (islocalmAddr ? "_" : "") << ", ctx->mem_idx, MO_TUEL);\n";
 }
 
 void OptStoreStatement::Analyze(Option* option, Instruction* inst, std::stringstream& ss, int depth) {
-    if(inst->IsLocal(option, mrs1->String()) == -1) 
-        option->error("Unknown Local : " + mrs1->String());
-
-    if(inst->IsLocal(option, mAddr->String()) == -1) 
-        option->error("Unknown Local : " + mAddr->String());
+    char islocalmrs1 = 0, islocalmAddr = 0;
+    int ret = inst->IsLocal(mrs1->String());
+    if(ret < 0) {
+        ret = option->GetTranslater()->IsGlobalRegister(mrs1->String());
+        if(ret < 0)
+            option->error("Unknown Local : " + mrs1->String());
+    } else
+        islocalmrs1 = '_';
+        
+    ret = inst->IsLocal(mAddr->String());
+    if(ret < 0) {
+        ret = option->GetTranslater()->IsGlobalRegister(mAddr->String());
+        if(ret < 0)
+            option->error("Unknown Local : " + mAddr->String());
+    } else 
+        islocalmAddr = '_';
     
     for(int i = 0; i < depth; ++i) 
         ss << '\t';
-    ss << "tcg_gen_qemu_st_tl(" << mrs1->String() << ", " << mAddr->String()  << ", ctx->mem_idx, MO_TUEL);\n";
+    ss << "tcg_gen_qemu_st_tl(" << mrs1->String() << (islocalmrs1 ? "_" : "") << ", " << mAddr->String() << (islocalmAddr ? "_" : "") << ", ctx->mem_idx, MO_TUEL);\n";
 }
 

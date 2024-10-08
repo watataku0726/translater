@@ -980,35 +980,20 @@ case 29:
 YY_RULE_SETUP
 #line 95 "scanner.l"
 {
-                        std::string* str = new std::string(yytext);
-                        const char* str_p = str->c_str();
-                        if(str->size() == 2) {
-                            if((str_p[0] == 'a' && '0' <= str_p[1] && str_p[1] <= '7') || (str_p[0] == 'r' && str_p[1] == '0'))
-                                driver.error(*yylloc, "Unacceptable characters : " + *str);
-                        } else if(str->size() >= 4) {
-                            if(str_p[0] == 't' && str_p[1] == 'm' && str_p[2] == 'p') {
-                                const char* p = str_p + 3;
-                                while('0' <= *p && *p <= '9')
-                                    ++p;
-                                if(*p == '\0')
-                                    driver.error(*yylloc, "Unacceptable characters : " + *str);
-                            }
-                        } else if (*str == "a" || *str == "ctx") 
-                            driver.error(*yylloc, "Unacceptable characters : " + *str);
-                        yylval->sval = str;
+                        yylval->sval = new std::string(yytext);
                         return token::TK_IDENTIFIER;
                     }
 	YY_BREAK
 case 30:
 YY_RULE_SETUP
-#line 114 "scanner.l"
+#line 99 "scanner.l"
 driver.error(*yylloc, "This charactor cannot be used in identifiers.");
 	YY_BREAK
 
 
 case 31:
 YY_RULE_SETUP
-#line 117 "scanner.l"
+#line 102 "scanner.l"
 {
                         yylloc->lines();
                         yylloc->step();
@@ -1019,42 +1004,42 @@ YY_RULE_SETUP
 
 case 32:
 YY_RULE_SETUP
-#line 124 "scanner.l"
+#line 109 "scanner.l"
 
 	YY_BREAK
 case 33:
 /* rule 33 can match eol */
 YY_RULE_SETUP
-#line 125 "scanner.l"
+#line 110 "scanner.l"
 { yylloc->lines(); }
 	YY_BREAK
 case 34:
 YY_RULE_SETUP
-#line 126 "scanner.l"
+#line 111 "scanner.l"
 
 	YY_BREAK
 case 35:
 /* rule 35 can match eol */
 YY_RULE_SETUP
-#line 127 "scanner.l"
+#line 112 "scanner.l"
 {yylloc->lines(); }
 	YY_BREAK
 case YY_STATE_EOF(C_COMMENT):
-#line 128 "scanner.l"
+#line 113 "scanner.l"
 driver.error(*yylloc, "File ended in the middle of comment.");
 	YY_BREAK
 case 36:
 YY_RULE_SETUP
-#line 129 "scanner.l"
+#line 114 "scanner.l"
 BEGIN(INITIAL);
 	YY_BREAK
 
 case 37:
 YY_RULE_SETUP
-#line 131 "scanner.l"
+#line 116 "scanner.l"
 ECHO;
 	YY_BREAK
-#line 1058 "scanner.cc"
+#line 1043 "scanner.cc"
 case YY_STATE_EOF(INITIAL):
 case YY_STATE_EOF(CPP_COMMENT):
 	yyterminate();
@@ -1938,7 +1923,7 @@ void yyfree (void * ptr )
 
 #define YYTABLES_NAME "yytables"
 
-#line 131 "scanner.l"
+#line 116 "scanner.l"
 
 
 void Option::scan_begin() {

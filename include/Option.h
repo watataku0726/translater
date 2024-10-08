@@ -40,7 +40,7 @@ public:
 
     void Anaylze(Option* option, std::stringstream& ss);
     void AddLocal(const std::string* local, int size) { mLocals.emplace(*local, size); }
-    int IsLocal(const Option* option, const std::string& local);
+    int IsLocal(const std::string& local);
     void SetNumTmp(int num) { mNumTmp = mNumTmp > num ? mNumTmp : num; }
     void SetNumA(int num) { mNumA= mNumA > num ? mNumA : num; }
     int SetLabel() { return mNumLabel++; } 

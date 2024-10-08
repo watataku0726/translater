@@ -92,22 +92,7 @@ blank   [ \t]
                         return token::TK_IVAL;
                     }
     {id}            {
-                        std::string* str = new std::string(yytext);
-                        const char* str_p = str->c_str();
-                        if(str->size() == 2) {
-                            if((str_p[0] == 'a' && '0' <= str_p[1] && str_p[1] <= '7') || (str_p[0] == 'r' && str_p[1] == '0'))
-                                driver.error(*yylloc, "Unacceptable characters : " + *str);
-                        } else if(str->size() >= 4) {
-                            if(str_p[0] == 't' && str_p[1] == 'm' && str_p[2] == 'p') {
-                                const char* p = str_p + 3;
-                                while('0' <= *p && *p <= '9')
-                                    ++p;
-                                if(*p == '\0')
-                                    driver.error(*yylloc, "Unacceptable characters : " + *str);
-                            }
-                        } else if (*str == "a" || *str == "ctx") 
-                            driver.error(*yylloc, "Unacceptable characters : " + *str);
-                        yylval->sval = str;
+                        yylval->sval = new std::string(yytext);
                         return token::TK_IDENTIFIER;
                     }
     .               driver.error(*yylloc, "This charactor cannot be used in identifiers.");

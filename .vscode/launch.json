@@ -7,8 +7,10 @@
       "request": "launch",
       "program": "${workspaceRoot}/bin/${config:programName}_d",
       "args": [
-        "array.s",
-        "-I${workspaceFolder}/include"
+        "sha256.s",
+        "--option",
+        "option.txt",
+        "--help"
       ],
       "stopAtEntry": true,
       "cwd": "${workspaceFolder}",

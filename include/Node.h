@@ -118,7 +118,7 @@ protected:
 
 class OptValueNode : public OptNode {
 public:
-    OptValueNode(const yy::location& l, std::string* name, OptNode* node = nullptr)
+    OptValueNode(const yy::location& l, std::string* name, OptNode* node = nullptr) 
         :OptNode(l, OPCODE::OP_VALUE, name, node)
     {}
 

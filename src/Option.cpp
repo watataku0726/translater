@@ -81,9 +81,9 @@ void Instruction::Anaylze(Option* option, std::stringstream& ss) {
             ss << '\n';
     } 
 
-    ss  << "\tTCGv rd = get_gpr(ctx, a->rd, EXT_NONE);\n"
-        << "\tTCGv rs1 = get_gpr(ctx, a->rs1, EXT_NONE);\n"
-        << "\tTCGv rs2 = get_gpr(ctx, a->rs2, EXT_NONE);\n\n";
+    ss  << "\tTCGv rd_ = get_gpr(ctx, a->rd, EXT_NONE);\n"
+        << "\tTCGv rs1_ = get_gpr(ctx, a->rs1, EXT_NONE);\n"
+        << "\tTCGv rs2_ = get_gpr(ctx, a->rs2, EXT_NONE);\n\n";
 
     for(int i = 0; i < mNumTmp; ++i) 
         ss << "\tTCGv tmp" << i << " = tcg_temp_new();\n";
@@ -99,10 +99,10 @@ void Instruction::Anaylze(Option* option, std::stringstream& ss) {
     ss << "\treturn true;\n}\n\n";
 }
 
-int Instruction::IsLocal(const Option* option, const std::string& local) {
+int Instruction::IsLocal(const std::string& local) {
     auto iter = mLocals.find(local);
     if(iter != mLocals.end()) {
         return iter->second;
     }
-    return option->GetTranslater()->IsGlobalRegister(local);
+    return -1;//option->GetTranslater()->IsGlobalRegister(local);
 }

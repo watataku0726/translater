@@ -159,7 +159,7 @@ expr                : expr "&&" expr            { $$ =  OptNode::MakeNode(driver
                     | "identifier" '(' ')'      {$$ = new OptFunctionNode(@1, $1, nullptr); }
                     ;
 
-value               : "identifier"              { $$ = new OptValueNode(@1, $1); }
+value               : "identifier"              { /*$1 += '_';*/ $$ = new OptValueNode(@1, $1); }
                     ;
 
 args                : expr                      { $$ = new OptArgs($1); }

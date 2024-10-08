@@ -941,7 +941,7 @@ namespace yy {
 
   case 45: // value: "identifier"
 #line 162 "parser.y"
-                                                { (yylhs.value.value) = new OptValueNode(yystack_[0].location, (yystack_[0].value.sval)); }
+                                                { /*$1 += '_';*/ (yylhs.value.value) = new OptValueNode(yystack_[0].location, (yystack_[0].value.sval)); }
 #line 946 "parser.cc"
     break;
 

@@ -4,9 +4,8 @@
 
 int main(int argc, char **argv) {
 
-    std::string filename(argv[1]);
-    Translater translater(filename);
-    if(!translater.Initialize())
+    Translater translater;
+    if(!translater.Initialize(argc, argv))
         return -1;
     translater.RunLoop();
     
