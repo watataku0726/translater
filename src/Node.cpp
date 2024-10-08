@@ -290,10 +290,19 @@ void OptFunctionNode::Analyze(Option* option, Instruction* inst, std::stringstre
                     ss << '\t';
                 ss << "tcg_gen_movi_tl(a" << i << ", " << arg->Value() << ");\n";
                 break;
-            case OPCODE::OP_VALUE:
+            case OPCODE::OP_VALUE: {
+                char islocal = 0;
+                int ret = inst->IsLocal(arg->String());
+                if(ret < 0) {
+                    ret = option->GetTranslater()->IsGlobalRegister(arg->String());
+                    if(ret < 0)
+                        option->error(mL, "Unknown Local : " + arg->String());
+                } else
+                    islocal = '_';
                 for(int j = 0; j < depth; ++j)
                     ss << '\t';
-                ss << "tcg_gen_mov_tl(a" << i << ", " << arg->String() << ");\n";
+                ss << "tcg_gen_mov_tl(a" << i << ", " << arg->String() << (islocal ? "_" : "") << ");\n";
+            }
                 break;
             default:
                 arg->Analyze(option, inst, ss, depth, times);
@@ -352,14 +361,14 @@ void OptDecl::Analyze(Option* option, Instruction* inst, std::stringstream& ss, 
     
 
 void OptLet::Analyze(Option* option, Instruction* inst, std::stringstream& ss, int depth) {
-    char islocal = 0;
+    char islocalmValue = 0;
     int ret = inst->IsLocal(mValue->String());
     if(ret < 0) {
         ret = option->GetTranslater()->IsGlobalRegister(mValue->String());
         if(ret < 0)
             option->error(mL, "Unknown Local : " + mValue->String());
     } else 
-        islocal = '_';
+        islocalmValue = '_';
         
 
     if(mExpr->Op() == OPCODE::OP_CONST) {
@@ -367,30 +376,44 @@ void OptLet::Analyze(Option* option, Instruction* inst, std::stringstream& ss, i
             ss << '\t';
         switch(mOp) {
             case '=':
-                ss << "tcg_gen_movi_tl(" << mValue->String() << (islocal ? "_" : "") << ", " << mExpr->Value() << ");\n";
+                ss << "tcg_gen_movi_tl(" << mValue->String() << (islocalmValue ? "_" : "") << ", " << mExpr->Value() << ");\n";
                 break;
             case '+':
-                ss << "tcg_gen_addi_tl(" << mValue->String() << (islocal ? "_" : "") << ", " << mValue->String() << ", " << mExpr->Value() << ");\n";
+                ss  << "tcg_gen_addi_tl(" << mValue->String() << (islocalmValue ? "_" : "") << ", " 
+                    << mValue->String() << (islocalmValue ? "_" : "") << ", " << mExpr->Value() << ");\n";
                 break;
             case '-':
-                ss << "tcg_gen_addi_tl(" << mValue->String() << (islocal ? "_" : "") << ", " << mValue->String() << ", -(" << mExpr->Value() << "));\n";
+                ss  << "tcg_gen_addi_tl(" << mValue->String() << (islocalmValue ? "_" : "") << ", " 
+                    << mValue->String() << (islocalmValue ? "_" : "") << ", -(" << mExpr->Value() << "));\n";
                 break;
         }
     } else if (mExpr->Op() == OPCODE::OP_VALUE) {
+        char islocalmExpr = 0;
+        ret = inst->IsLocal(mExpr->String());
+        if(ret < 0) {
+            ret = option->GetTranslater()->IsGlobalRegister(mExpr->String());
+            if(ret < 0)
+                option->error(mL, "Unknown Local : " + mExpr->String());
+        } else 
+            islocalmExpr = '_';
+
         for(int i = 0; i < depth; ++i)
             ss << '\t';
         switch(mOp) {
             case '=':
-                ss << "tcg_gen_mov_tl(" << mValue->String() << (islocal ? "_" : "") << ", " << mExpr->String() << ");\n";
+                ss  << "tcg_gen_mov_tl(" << mValue->String() << (islocalmValue ? "_" : "") << ", " 
+                    << mExpr->String() << (islocalmExpr ? "_" : "") << ");\n";
                 break;
             case '+':
-                ss << "tcg_gen_add_tl(" << mValue->String() << (islocal ? "_" : "") << ", " << mValue->String() << ", " << mExpr->String() << ");\n";
+                ss  << "tcg_gen_add_tl(" << mValue->String() << (islocalmValue ? "_" : "") << ", " 
+                    << mValue->String() << (islocalmValue ? "_" : "") << ", " << mExpr->String() << (islocalmExpr ? "_" : "") << ");\n";
                 break;
             case '-':
-                ss << "tcg_gen_sub_tl(" << mValue->String() << (islocal ? "_" : "") << ", " << mValue->String() << ", " << mExpr->String() << ");\n";
+                ss  << "tcg_gen_sub_tl(" << mValue->String() << (islocalmValue ? "_" : "") << ", " 
+                    << mValue->String() << (islocalmValue ? "_" : "") << ", " << mExpr->String() << (islocalmExpr ? "_" : "") << ");\n";
                 break;
         }
-    }else {
+    } else {
         int times = 0;
         mExpr->Analyze(option, inst, ss, depth, times);
         inst->SetNumTmp(times);
@@ -399,13 +422,13 @@ void OptLet::Analyze(Option* option, Instruction* inst, std::stringstream& ss, i
             ss << '\t';
         switch(mOp) {
             case '=':
-                ss << "tcg_gen_mov_tl(" << mValue->String() << (islocal ? "_" : "")  << ", tmp" << times - 1 << ");\n";
+                ss << "tcg_gen_mov_tl(" << mValue->String() << (islocalmValue ? "_" : "")  << ", tmp" << times - 1 << ");\n";
                 break;
             case '+':
-                ss << "tcg_gen_add_tl(" << mValue->String() << (islocal ? "_" : "") << ", " << mValue->String() << ", tmp" << times - 1 << ");\n";
+                ss << "tcg_gen_add_tl(" << mValue->String() << (islocalmValue ? "_" : "") << ", " << mValue->String() << ", tmp" << times - 1 << ");\n";
                 break;
             case '-':
-                ss << "tcg_gen_sub_tl(" << mValue->String() << (islocal ? "_" : "") << ", " << mValue->String() << ", tmp" << times - 1 << ");\n";
+                ss << "tcg_gen_sub_tl(" << mValue->String() << (islocalmValue ? "_" : "") << ", " << mValue->String() << ", tmp" << times - 1 << ");\n";
                 break;
         }
     }
