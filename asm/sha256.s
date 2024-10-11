@@ -211,16 +211,24 @@ label_BB2_2:                            # %if.else
 	?assign	tmp2, W.
 	!add	tmp1, tmp2, tmp1.
 	?ld	2, tmp3, -8(tmp1)
-	!rotli	tmp4, tmp3, 15.
-	!rotli	tmp5, tmp3, 13.
+	!shri	tmp4, tmp3, 17.
+	!shli	tmp5, tmp3, 15.
+	!or	tmp4, tmp4, tmp5.
+	!shri	tmp5, tmp3, 19.
+	!shli	tmp6, tmp3, 13.
+	!or	tmp5, tmp5, tmp6.
 	!xor	tmp4, tmp4, tmp5.
 	!shri	tmp3, tmp3, 10.
 	!xor	tmp3, tmp4, tmp3.
 	?ld	2, tmp4, -28(tmp1)
 	!add	tmp3, tmp3, tmp4.
 	?ld	2, tmp4, -60(tmp1)
-	!rotli	tmp5, tmp4, 25.
-	!rotli	tmp6, tmp4, 14.
+	!shri	tmp5, tmp4, 7.
+	!shli	tmp6, tmp4, 25.
+	!or	tmp5, tmp5, tmp6.
+	!shri	tmp6, tmp4, 18.
+	!shli	a0, tmp4, 14.
+	!or	tmp6, tmp6, a0.
 	!xor	tmp5, tmp5, tmp6.
 	!shri	tmp4, tmp4, 3.
 	!xor	tmp4, tmp5, tmp4.
@@ -238,10 +246,16 @@ label_BB2_3:                            # %if.end
 	?assign	tmp1, m.
 	?ld	2, tmp2, 28(tmp1)
 	?ld	2, tmp3, 16(tmp1)
-	!rotli	tmp4, tmp3, 26.
-	!rotli	tmp5, tmp3, 21.
+	!shri	tmp4, tmp3, 6.
+	!shli	tmp5, tmp3, 26.
+	!or	tmp4, tmp4, tmp5.
+	!shri	tmp5, tmp3, 11.
+	!shli	tmp6, tmp3, 21.
+	!or	tmp5, tmp5, tmp6.
 	!xor	tmp4, tmp4, tmp5.
-	!rotli	tmp5, tmp3, 7.
+	!shri	tmp5, tmp3, 25.
+	!shli	tmp6, tmp3, 7.
+	!or	tmp5, tmp5, tmp6.
 	!xor	tmp4, tmp4, tmp5.
 	!add	tmp2, tmp2, tmp4.
 	?ld	2, tmp4, 20(tmp1)
@@ -261,10 +275,16 @@ label_BB2_3:                            # %if.end
 	!add	tmp2, tmp2, tmp3.
 	?st	2, 8(sp), tmp2.
 	?ld	2, tmp2, 0(tmp1)
-	!rotli	tmp3, tmp2, 30.
-	!rotli	tmp4, tmp2, 19.
+	!shri	tmp3, tmp2, 2.
+	!shli	tmp4, tmp2, 30.
+	!or	tmp3, tmp3, tmp4.
+	!shri	tmp4, tmp2, 13.
+	!shli	tmp5, tmp2, 19.
+	!or	tmp4, tmp4, tmp5.
 	!xor	tmp3, tmp3, tmp4.
-	!rotli	tmp4, tmp2, 10.
+	!shri	tmp4, tmp2, 22.
+	!shli	tmp5, tmp2, 10.
+	!or	tmp4, tmp4, tmp5.
 	!xor	tmp3, tmp3, tmp4.
 	?ld	2, tmp4, 4(tmp1)
 	!and	tmp5, tmp2, tmp4.

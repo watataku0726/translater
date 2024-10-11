@@ -7,7 +7,7 @@
 Function::Function(int pos, const std::string& functionLabel) 
     :mStart(pos), mEnd(pos), mNumLabels(0), mMainStackSize(0)
     ,mNumber(0), mNumArgStacks(0), mCurArgStackSize(0), WriteArgStack(false)
-    ,mNumA(0), mNumTmp(0)
+    ,mNumA(0), mNumTmp(0), mUseArray(false)
 {
     mLabels.clear();
     if(functionLabel.substr(0, 2) != "_Z"){

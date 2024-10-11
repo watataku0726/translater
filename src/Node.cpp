@@ -355,7 +355,22 @@ void OptFunctionNode::Analyze(Option* option, Instruction* inst, std::stringstre
 void OptDecl::Analyze(Option* option, Instruction* inst, std::stringstream& ss, int depth) {
     for(int i = 0; i < depth; ++i)
         ss << '\t';
-    ss << "TCGv " << mValue->String() << '_' << " = tcg_temp_new();\n";
+    ss << "TCGv " << mValue->String() << '_';
+    switch(mKind) {
+        case Kind::LOCAL:
+            ss << " = tcg_temp_new();\n";
+            break;
+        case Kind::RD:
+            ss << " = get_gpr(ctx, a->rd, EXT_NONE);\n";
+            break;
+        case Kind::RS1:
+            ss << " = get_gpr(ctx, a->rs1, EXT_NONE);\n";
+            break;
+        case Kind::RS2:
+            ss << " = get_gpr(ctx, a->rs2, EXT_NONE);\n";
+            break;
+    }
+    
     inst->AddLocal(mValue->StringPtr(), 0);
 }
     
@@ -548,7 +563,7 @@ void OptLoadStatement::Analyze(Option* option, Instruction* inst, std::stringstr
 
     for(int i = 0; i < depth; ++i) 
         ss << '\t';
-    ss << "tcg_gen_qemu_ld_tl(" << mrd->String() << (islocalmrd ? "_" : "") << ", " << mAddr->String() << (islocalmAddr ? "_" : "") << ", ctx->mem_idx, MO_TUEL);\n";
+    ss << "tcg_gen_qemu_ld_tl(" << mrd->String() << (islocalmrd ? "_" : "") << ", " << mAddr->String() << (islocalmAddr ? "_" : "") << ", ctx->mem_idx, MO_TEUL);\n";
 }
 
 void OptStoreStatement::Analyze(Option* option, Instruction* inst, std::stringstream& ss, int depth) {
@@ -571,6 +586,6 @@ void OptStoreStatement::Analyze(Option* option, Instruction* inst, std::stringst
     
     for(int i = 0; i < depth; ++i) 
         ss << '\t';
-    ss << "tcg_gen_qemu_st_tl(" << mrs1->String() << (islocalmrs1 ? "_" : "") << ", " << mAddr->String() << (islocalmAddr ? "_" : "") << ", ctx->mem_idx, MO_TUEL);\n";
+    ss << "tcg_gen_qemu_st_tl(" << mrs1->String() << (islocalmrs1 ? "_" : "") << ", " << mAddr->String() << (islocalmAddr ? "_" : "") << ", ctx->mem_idx, MO_TEUL);\n";
 }
 

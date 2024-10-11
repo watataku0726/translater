@@ -282,7 +282,10 @@ namespace yy {
     TK_LOCAL = 275,                // "local"
     TK_LOAD = 276,                 // "load"
     TK_STORE = 277,                // "store"
-    TK_PROJECTNAME = 278           // "projectName"
+    TK_PROJECTNAME = 278,          // "projectName"
+    TK_RD = 279,                   // "rd"
+    TK_RS1 = 280,                  // "rs1"
+    TK_RS2 = 281                   // "rs2"
       };
       /// Backward compatibility alias (Bison 3.6).
       typedef token_kind_type yytokentype;
@@ -299,7 +302,7 @@ namespace yy {
     {
       enum symbol_kind_type
       {
-        YYNTOKENS = 34, ///< Number of tokens.
+        YYNTOKENS = 37, ///< Number of tokens.
         S_YYEMPTY = -2,
         S_YYEOF = 0,                             // "end of file"
         S_YYerror = 1,                           // error
@@ -325,31 +328,34 @@ namespace yy {
         S_TK_LOAD = 21,                          // "load"
         S_TK_STORE = 22,                         // "store"
         S_TK_PROJECTNAME = 23,                   // "projectName"
-        S_24_ = 24,                              // '>'
-        S_25_ = 25,                              // '<'
-        S_26_ = 26,                              // ';'
-        S_27_ = 27,                              // ':'
-        S_28_ = 28,                              // '='
-        S_29_ = 29,                              // '{'
-        S_30_ = 30,                              // '}'
-        S_31_ = 31,                              // '('
-        S_32_ = 32,                              // ')'
-        S_33_ = 33,                              // ','
-        S_YYACCEPT = 34,                         // $accept
-        S_unit = 35,                             // unit
-        S_define_or_state = 36,                  // define_or_state
-        S_inst_block = 37,                       // inst_block
-        S_block = 38,                            // block
-        S_decl_list = 39,                        // decl_list
-        S_state_list = 40,                       // state_list
-        S_decls = 41,                            // decls
-        S_declaration = 42,                      // declaration
-        S_states = 43,                           // states
-        S_statement = 44,                        // statement
-        S_assign = 45,                           // assign
-        S_expr = 46,                             // expr
-        S_value = 47,                            // value
-        S_args = 48                              // args
+        S_TK_RD = 24,                            // "rd"
+        S_TK_RS1 = 25,                           // "rs1"
+        S_TK_RS2 = 26,                           // "rs2"
+        S_27_ = 27,                              // '>'
+        S_28_ = 28,                              // '<'
+        S_29_ = 29,                              // ';'
+        S_30_ = 30,                              // ':'
+        S_31_ = 31,                              // '='
+        S_32_ = 32,                              // '{'
+        S_33_ = 33,                              // '}'
+        S_34_ = 34,                              // '('
+        S_35_ = 35,                              // ')'
+        S_36_ = 36,                              // ','
+        S_YYACCEPT = 37,                         // $accept
+        S_unit = 38,                             // unit
+        S_define_or_state = 39,                  // define_or_state
+        S_inst_block = 40,                       // inst_block
+        S_block = 41,                            // block
+        S_decl_list = 42,                        // decl_list
+        S_state_list = 43,                       // state_list
+        S_decls = 44,                            // decls
+        S_declaration = 45,                      // declaration
+        S_states = 46,                           // states
+        S_statement = 47,                        // statement
+        S_assign = 48,                           // assign
+        S_expr = 49,                             // expr
+        S_value = 50,                            // value
+        S_args = 51                              // args
       };
     };
 
@@ -861,7 +867,7 @@ namespace yy {
     /// Constants.
     enum
     {
-      yylast_ = 158,     ///< Last index in yytable_.
+      yylast_ = 161,     ///< Last index in yytable_.
       yynnts_ = 15,  ///< Number of nonterminal symbols.
       yyfinal_ = 9 ///< Termination state number.
     };
@@ -874,7 +880,7 @@ namespace yy {
 
 
 } // yy
-#line 878 "parser.hh"
+#line 884 "parser.hh"
 
 
 

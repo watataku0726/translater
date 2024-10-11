@@ -76,6 +76,7 @@ private:
     std::vector<Function*> mFunctions;
     std::string mOutputFile;
     Option* mOption;
+    int mN;
     int mHelperFlag;
     bool mStackFlag;
 

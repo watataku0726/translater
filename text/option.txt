@@ -8,32 +8,37 @@ def reset : Instruction {
 }
 
 def setAddr_H : Instruction {
-    setAddr(rs1, 0);
+    def rs1_ : rs1;
+    setAddr(rs1_, 0);
 }
 
 def setAddr_W : Instruction {
-    setAddr(rs1, 1);
+    def rs1_ : rs1;
+    setAddr(rs1_, 1);
 }
 
 def setAddr_m : Instruction {
-    setAddr(rs1, 2);
+    def rs1_ : rs1;
+    setAddr(rs1_, 2);
 }
 
-def loaData : Instruction {
+def loadData : Instruction {
     def ready : local;
+    def rd_ : rd;
     let ready = 0;
     while(ready == 0) {
-        let dataOut = 36;
-        let opOut = 0;
+        let dataOut = 0;
+        let opOut = 36;
         let memAddrOut = 0;
         let ready = loadData(memLoadDataIn);
         if(opOut == 6) memLoadDataIn <= load<memAddrOut>;
     }
-    let rd = dataOut;
+    let rd_ = dataOut;
 }
 
 def storeData : Instruction {
     def ready : local;
+    def rd_ : rd;
     let ready = 0;
     while(ready == 0) {
         let dataOut = 0;
@@ -42,16 +47,17 @@ def storeData : Instruction {
         let ready = storeData();
         if(opOut == 7) store<memAddrOut> <= dataOut;
     }
-    let rd = dataOut;
+    let rd_ = dataOut;
 }
 
 def computeHash : Instruction {
     def ready : local;
+    def rd_ : rd;
     let ready = 0;
     while(ready == 0) {
         let dataOut = 0;
         let opOut = 36;
         let ready = computeHash();
     }
-    let rd = dataOut;
+    let rd_ = dataOut;
 }

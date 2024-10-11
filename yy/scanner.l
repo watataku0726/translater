@@ -63,6 +63,9 @@ blank   [ \t]
     "def"           return token::TK_DEF;
     "let"           return token::TK_LET;
     "projectName"   return token::TK_PROJECTNAME;
+    "rd"            return token::TK_RD;
+    "rs1"           return token::TK_RS1;
+    "rs2"           return token::TK_RS2;
 
     \\\n            yylloc->lines();
 

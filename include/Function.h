@@ -39,6 +39,9 @@ public:
     void SetNumA(int num) { mNumA = num > mNumA ? num : mNumA; }
     int GetNumTmp() const { return mNumTmp; }
     int GetNumA() const { return mNumA; }
+
+    void UseArray() { mUseArray = true; }
+    bool GetUseArray() const { return mUseArray; }
 private:
     std::string mFunctionName;
     std::vector<Label*> mLabels;
@@ -56,6 +59,7 @@ private:
     int mCurArgStackSize;
     bool WriteArgStack;
 
+    bool mUseArray;
 };
 
 #endif //!__FUNCTION_H__

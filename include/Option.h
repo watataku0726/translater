@@ -28,9 +28,9 @@ public:
     Instruction(const std::string* name, OptStateBlock* states)
         :mName(name), mBlock(states), mNumTmp(0), mNumA(0), mNumLabel(0)
     {   
-        mLocals.emplace("rd", 0);
-        mLocals.emplace("rs1", 0);
-        mLocals.emplace("rs2", 0);
+        //mLocals.emplace("rd", 0);
+        //mLocals.emplace("rs1", 0);
+        //mLocals.emplace("rs2", 0);
     }
     ~Instruction() {
         delete mName;

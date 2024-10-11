@@ -169,8 +169,14 @@ private:
 
 class OptDecl {
 public:
-    OptDecl(OptValueNode* value)
-        :mValue(value)
+    enum Kind {
+        LOCAL,
+        RD,
+        RS1,
+        RS2,
+    };
+    OptDecl(OptValueNode* value, Kind kind)
+        :mValue(value), mKind(kind)
     {}
     ~OptDecl() {
         delete mValue;
@@ -180,6 +186,7 @@ public:
     
 private:
     OptValueNode* mValue;
+    Kind mKind;
 };
 
 class OptStateBlock {

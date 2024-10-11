@@ -11,7 +11,7 @@
 
 
 Translater::Translater() 
-    :mOption(nullptr), mStackFlag(false), mHelperFlag(0), mOutputFile("")
+    :mOption(nullptr), mStackFlag(false), mHelperFlag(0), mOutputFile(""), mN(0)
 {   
     mFunctions.clear();
     mContents.clear();
@@ -130,6 +130,14 @@ bool Translater::Initialize(int argc, char** argv) {
         return false;
     }
 
+    if(mOutputFile == "") {
+        std::string str = mOption->GetProjectName();
+        if(str == "")
+            mOutputFile = "trans_.c.inc";
+        else
+            mOutputFile = "trans_" + str + ".c.inc";
+    }
+
     return true;
 }
 
@@ -212,13 +220,7 @@ void Translater::RunLoop() {
     GenerateHelpers(helperss);
 
     //std::ofstream file("outpu.c.inc");
-    if(mOutputFile == "") {
-        std::string str = mOption->GetProjectName();
-        if(str == "")
-            mOutputFile = "trans_.c.inc";
-        else
-            mOutputFile = "trans_" + str + ".c.inc";
-    }
+
     std::ofstream file(mOutputFile);
     file << helperss.rdbuf() <<ss.rdbuf();
 
@@ -593,7 +595,7 @@ void Translater::NormalStatement(int pos, std::stringstream& ss,  int& function_
 
                 case Register::AssignState::Const:
                     AssignConst(rd_number, reg.globalRegister, rs2);
-                    ss << "\t/*Assign " << reg.globalRegister << "[" << rs2 << "]" << " to " << rd << ".*/\n";
+                    ss << "\t/*Assign const " << reg.globalRegister << "[" << rs2 << "]" << " to " << rd << ".*/\n";
                      break;
 
                 case Register::AssignState::None:
@@ -620,7 +622,7 @@ void Translater::NormalStatement(int pos, std::stringstream& ss,  int& function_
 
                 case Register::AssignState::Const:
                     AssignConst(rd_number, reg.globalRegister, rs1);
-                    ss << "\t/*Assign " << reg.globalRegister << "[" << rs1 << "]" << " to " << rd << ".*/\n";
+                    ss << "\t/*Assign const " << reg.globalRegister << "[" << rs1 << "]" << " to " << rd << ".*/\n";
                      break;
 
                 case Register::AssignState::None:
@@ -684,7 +686,7 @@ void Translater::NormalStatement(int pos, std::stringstream& ss,  int& function_
         offset += rd.size() + 2;
         GetSubString(line.c_str() + offset, op1, '.');
         GetRegNumber(op1, function_number);
-        ss << "\ttcg_gen_movi_tl(" << rd << ", " << op1 << ");\n"; 
+        ss << "\ttcg_gen_mov_tl(" << rd << ", " << op1 << ");\n"; 
         
     } else {
         std::string op1, op2, op3, op4;
@@ -745,10 +747,19 @@ void Translater::EndStatement(int pos, std::stringstream& ss,  std::stringstream
     for(int i = 1; i <= f->GetNumTmp(); ++i) {
         ss  << "\tTCGv tmp" << i << " = tcg_temp_new();\n";
     }
+    for(int i = 1; i <= f->GetNumTmp(); ++i) {
+        ss  << "\ttcg_gen_movi_tl(tmp" << i << ", 0);\n";
+    }
         
     for(int i = f->GetNumArgs(); i < f->GetNumA(); ++i) {
         ss  << "\tTCGv a" << i << " = tcg_temp_new();\n";
     }
+    for(int i = f->GetNumArgs(); i < f->GetNumA(); ++i) {
+        ss  << "\ttcg_gen_movi_tl(a" << i << ", 0);\n";
+    }
+
+    if(f->GetUseArray())
+        ss << "\tTCGv index = tcg_temp_new();\n\ttcg_gen_movi_tl(index, 0);\n";
     ss << "\n";
     ss << tmp_ss.rdbuf();
     tmp_ss.clear();
@@ -786,7 +797,7 @@ void Translater::LoadStatement(int pos, std::stringstream& ss,  int& function_nu
     offset += imm.size() + 1;
     GetSubString(line.c_str() + offset, op2, ')');
     int idx = atol(imm.c_str()) >> WORDSIZE_SHIFT;
-    const Function* func = mFunctions[function_number];
+    Function* func = mFunctions[function_number];
     if(op2 == "sp") {
         if(func->IsArgStackWriten()) {
             if(idx < func->GetCurArgStackSize()) {
@@ -809,21 +820,24 @@ void Translater::LoadStatement(int pos, std::stringstream& ss,  int& function_nu
         int op2_number = GetRegNumber(op2, function_number);
         const Register& reg = mAssignedRegisters[op2_number];
         if(reg.assignState == Register::AssignState::Global) {
-            if(reg.indexglobalRegister == "") {
+            if(reg.indexglobalRegister == "" && reg.arraySize > 1) {
                 ss << "\ttcg_gen_mov_tl(" << op1 << ", " << reg.globalRegister << "[" << idx <<"]);\n";
+            } else if(reg.indexglobalRegister == "" ) {
+                ss << "\ttcg_gen_mov_tl(" << op1 << ", " << reg.globalRegister <<");\n";
             } else {
                 if(reg.arraySize != 1 && reg.indexglobalRegister != "") {
                     ss  << "\n\t/*ARRAY ACCESS*/\n"
-                        //<< "\ttcg_gen_srai_tl(" << reg.indexglobalRegister << ", "
+                        //<< "\ttcg_gen_sari_tl(" << reg.indexglobalRegister << ", "
                         //<< reg.indexglobalRegister << ", " << WORDSIZE_SHIFT << ");\n" 
                         << "\tLOAD_ARRAY(ctx, " << op1 << ", " << reg.globalRegister << ", "  << reg.arraySize << ", "
-                        << reg.indexglobalRegister << ", " << idx << ");\n";
+                        << reg.indexglobalRegister << ", " << idx << ", " << mN++ << ");\n";
 
                     //if(op1 != reg.indexglobalRegister)
                     //    ss  << "\ttcg_gen_shli_tl(" << reg.indexglobalRegister << ", "
                     //        << reg.indexglobalRegister << ", " << WORDSIZE_SHIFT << ");\n";
                     ss << "\t/*End ARRAY ACCESS*/\n\n";
                     mHelperFlag |= HelperFlag::LOAD_ARRAY;
+                    func->UseArray();
                 } else if(reg.arraySize != 1) {
                     ss << "\ttcg_gen_mov_tl(" << op1 << ", " << reg.globalRegister << "[0]);\n";
                 } else {
@@ -831,36 +845,40 @@ void Translater::LoadStatement(int pos, std::stringstream& ss,  int& function_nu
                 }
             }
         } else if(reg.assignState == Register::AssignState::Const) {
-            if(reg.indexglobalRegister == "") {
-                ss << "\ttcg_gen_mov_tl(" << op1 << ", " << reg.globalRegister << "[" << idx <<"]);\n";
+            if(reg.indexglobalRegister == "" && reg.arraySize > 1) {
+                ss << "\ttcg_gen_movi_tl(" << op1 << ", " << reg.globalRegister << "[" << idx <<"]);\n";
+            } else if(reg.indexglobalRegister == "" ) {
+                ss << "\ttcg_gen_movi_tl(" << op1 << ", " << reg.globalRegister <<");\n";
             } else {
                 if(reg.indexglobalRegister != "") {
                     ss  << "\n\t/*ARRAY ACCESS*/\n"
-                        //<< "\ttcg_gen_srai_tl(" << reg.indexglobalRegister << ", "
+                        //<< "\ttcg_gen_sari_tl(" << reg.indexglobalRegister << ", "
                         //<< reg.indexglobalRegister << ", " << WORDSIZE_SHIFT << ");\n" 
                         << "\tLOAD_ARRAY_CONST(ctx, " << op1 << ", " << reg.globalRegister << ", "  << reg.arraySize << ", "
-                        << reg.indexglobalRegister << ", " << idx << ");\n";
+                        << reg.indexglobalRegister << ", " << idx << ", " << mN++ << ");\n";
 
                     //if(op1 != reg.indexglobalRegister)
                     //    ss  << "\ttcg_gen_shli_tl(" << reg.indexglobalRegister << ", "
                     //        << reg.indexglobalRegister << ", " << WORDSIZE_SHIFT << ");\n";
                     ss << "\t/*End ARRAY ACCESS*/\n\n";
                     mHelperFlag |= HelperFlag::LOAD_ARRAY_CONST;
+                    func->UseArray();
                 } else {
-                    ss << "\ttcg_gen_mov_tl(" << op1 << ", " << reg.globalRegister << "[0]);\n";
+                    ss << "\ttcg_gen_movi_tl(" << op1 << ", " << reg.globalRegister << "[0]);\n";
                 }
             }
         } else if(reg.assignState == Register::AssignState::Frame) {
             bool hasindexreg = (reg.indexglobalRegister != "");
             ss  << "\n\t/*STACK POINTER ACCESS*/\n";
             if(hasindexreg)
-                ss  <<"\ttcg_gen_srai_tl(" << reg.indexglobalRegister << ", " 
+                ss  <<"\ttcg_gen_sari_tl(" << reg.indexglobalRegister << ", " 
                     << reg.indexglobalRegister << ", " << WORDSIZE_SHIFT <<");\n";
             ss  << "\tLOAD_FRAME_ARRAY(ctx, " << op1 << ", " << "sp" << ", " << reg.arraySize << ", " << reg.frameIdx;
             mHelperFlag |= HelperFlag::LOAD_FRAME_ARRAY;
+            func->UseArray();
             if(hasindexreg)
                 ss << ", " << reg.indexglobalRegister;
-            ss  << ");\n";
+            ss  << ", " << mN++ << ");\n";
 
             if(op1 != reg.indexglobalRegister) 
                 ss  <<"\ttcg_gen_shli_tl(" << reg.indexglobalRegister << ", " 
@@ -887,11 +905,11 @@ void Translater::StoreStatement(int pos, std::stringstream& ss,  int& function_n
     offset += op1.size() + 3;
     GetSubString(line.c_str() + offset, op2, '.');
 
-    if(op2[0] == 'r' && op2[1] == 'a' && op2[2] == ' ')
+    if(op2[0] == 'r' && op2[1] == 'a' && op2[2] == '\0')
         return;
     GetRegNumber(op2, function_number);
     int idx = atol(imm.c_str()) >> WORDSIZE_SHIFT;
-    const Function* func = mFunctions[function_number];
+    Function* func = mFunctions[function_number];
     if(op1 == "sp") {
         if(func->IsArgStackWriten()) {
             if(idx < func->GetCurArgStackSize()) {
@@ -913,19 +931,22 @@ void Translater::StoreStatement(int pos, std::stringstream& ss,  int& function_n
         int op1_number = GetRegNumber(op1, function_number);
         const Register& reg = mAssignedRegisters[op1_number];
         if(reg.assignState == Register::AssignState::Global) {
-            if(reg.indexglobalRegister == "") {
+            if(reg.indexglobalRegister == "" && reg.arraySize > 1) {
                 ss << "\ttcg_gen_mov_tl(" << reg.globalRegister << "[" << idx <<"], " << op2 << ");\n";
+            } else if(reg.indexglobalRegister == "") {
+                ss << "\ttcg_gen_mov_tl(" << reg.globalRegister << ", " << op2 << ");\n";
             } else {
                 if(reg.arraySize != 1 && reg.indexglobalRegister != "") {
                     ss  << "\n\t/*ARRAY ACCESS*/\n"
                         //<< "\ttcg_gen_sari_tl(" << reg.indexglobalRegister << ", "
                         //<< reg.indexglobalRegister << ", " << WORDSIZE_SHIFT << ");\n" 
                         << "\tSTORE_ARRAY(ctx, " << reg.globalRegister << ", "  << reg.arraySize << ", "
-                        << reg.indexglobalRegister << ", " <<  idx << ", " << op2 <<  ");\n";
+                        << reg.indexglobalRegister << ", " <<  idx << ", " << op2 <<  ", " << mN++ << ");\n";
                         //<< "\ttcg_gen_shli_tl(" << reg.indexglobalRegister << ", "
                         //<< reg.indexglobalRegister << ", " << WORDSIZE_SHIFT << ");\n" ;
                     ss  << "\t/*End ARRAY ACCESS*/\n\n";
                     mHelperFlag |= HelperFlag::STORE_ARRAY;
+                    func->UseArray();
                 } else if(reg.arraySize != 1) {
                     ss << "\ttcg_gen_mov_tl(" << reg.globalRegister << "[0], " << op2 <<  ");\n";
                 } else {
@@ -936,13 +957,14 @@ void Translater::StoreStatement(int pos, std::stringstream& ss,  int& function_n
             bool hasindexreg = (reg.indexglobalRegister != "");
             ss  << "\n\t/*STACK POINTER ACCESS*/\n";
             if(hasindexreg)
-                ss  <<"\ttcg_gen_srai_tl(" << reg.indexglobalRegister << ", " 
+                ss  <<"\ttcg_gen_sari_tl(" << reg.indexglobalRegister << ", " 
                     << reg.indexglobalRegister << ", " << WORDSIZE_SHIFT <<");\n";
             ss  << "\tSTORE_FRAME_ARRAY(ctx, " <<"sp" << ", " << reg.arraySize << ", " << reg.frameIdx;
             mHelperFlag |= HelperFlag::STORE_FRAME_ARRAY;
+            func->UseArray();
             if(hasindexreg)
                 ss << ", " << reg.indexglobalRegister;
-            ss  << ", " << op2 << ");\n"
+            ss  << ", " << op2 << ", " << mN++ << ");\n"
                 <<"\ttcg_gen_shli_tl(" << reg.indexglobalRegister << ", " 
                 << reg.indexglobalRegister << ", " << WORDSIZE_SHIFT <<");\n"
                 << "\t/*End STACK POINTER ACCESS*/\n\n";
@@ -970,7 +992,7 @@ void Translater::AssignStatement(int pos, std::stringstream& ss,  int& function_
         while('0' <= *str && *str <= '9') 
             lss << *(str++);
         AssignConst(rd_number, str);
-        ss << "\t/*Assign " << str << " to " << rd << ".*/\n"; 
+        ss << "\t/*Assign const " << str << " to " << rd << ".*/\n"; 
     } else {
         AssignGlobal(rd_number, op);
         ss << "\t/*Assign " << op << " to " << rd << ".*/\n"; 
@@ -1025,7 +1047,11 @@ void Translater::CallStatement(int pos, std::stringstream& ss,  int& function_nu
         }
         assert(idx > 2);
         int len = atol(functionLabel.substr(2, idx - 2).c_str());
-        int numArgs = functionLabel.size() - (idx + len);
+        int numArgs;
+        if(functionLabel[idx + len] != 'v')
+            numArgs = functionLabel.size() - (idx + len);
+        else
+            numArgs = 0;
 
         ss << "\t" <<  functionLabel.substr(idx, len) << "(ctx, r0";
 
@@ -1068,8 +1094,21 @@ void Translater::FrameStatement(int pos ,std::stringstream& ss, int& function_nu
 
 void Translater::Prologue(std::stringstream& ss) {
 
+    ss  << "/*=========================================================================================*/\n"
+        << "/*\t1. Install \"" << mOutputFile <<"\" in target/riscv/translate.c  \n";
+        
     int numGlobals = mGlobalRegisters.size();
     if(numGlobals > 0) {
+        ss  << "  \t2. The function void riscv_translate_init(void) in target/riscv/translate.c calls the function hoge.\n"
+            << "  \t3. Add the following variables as member variables to the struct CPUArchState in target/riscv/cpu.h.\n";
+        for(auto iter : mGlobalRegisters) {
+            ss << "  \t\ttarget_ulong " << iter.first;
+            if(iter.second != 1) 
+                ss << "[" << iter.second <<"]";
+            ss << ";\n";
+        }
+
+        ss << "/ =========================================================================================*/\n\n";   
         ss << "static TCGv";
         int i = 1;
         for(auto iter : mGlobalRegisters) {
@@ -1106,7 +1145,8 @@ void Translater::Prologue(std::stringstream& ss) {
         }
         ss  <<"}\n" ;
 
-    }
+    } else 
+        ss << "/ =========================================================================================*/\n\n";
 
     ss << "\n";
 
@@ -1143,6 +1183,15 @@ void Translater::Prologue(std::stringstream& ss) {
 void Translater::Epilogue(std::stringstream& ss) {
     ss << '\n';
     mOption->WriteInstruction(ss);
+
+    if(mHelperFlag & HelperFlag::LOAD_ARRAY) 
+        ss << "#undef LOAD_ARRAY\n";
+
+    if(mHelperFlag & HelperFlag::STORE_ARRAY) 
+        ss << "#undef STORE_ARRAY\n";
+
+    if(mHelperFlag & HelperFlag::LOAD_ARRAY_CONST) 
+        ss << "#undef LOAD_ARRAY_CONST\n";
 }
 
 void Translater::GenerateHelpers(std::stringstream& ss) {
@@ -1151,11 +1200,11 @@ void Translater::GenerateHelpers(std::stringstream& ss) {
         << "/*=========================================================================================*/\n\n";
 
     if(mHelperFlag & HelperFlag::LOAD_ARRAY) {
-        ss  << "#if !defined(__HELPERS_LOAD_ARRAY__)\n"
+        /*ss  << "#if !defined(__HELPERS_LOAD_ARRAY__)\n"
             << "#define __HELPERS_LOAD_ARRAY__\n"
             << "static void LOAD_ARRAY(DisasContext *ctx, TCGv rd, TCGv *array, int length, TCGv index_reg, int offset) {\n"
             << "\tTCGv index = tcg_temp_new();\n"
-            << "\ttcg_gen_srai_tl(index, index_reg, "<< WORDSIZE_SHIFT << ");\n"
+            << "\ttcg_gen_sari_tl(index, index_reg, " << WORDSIZE_SHIFT << ");\n"
             << "\ttcg_gen_addi_tl(index, index, offset);\n"
             << "\tTCGLabel *local_labels[length];\n"
             << "\tfor(int i = 0; i < length; ++i) { local_labels[i] = gen_new_label(); }\n" 
@@ -1171,14 +1220,33 @@ void Translater::GenerateHelpers(std::stringstream& ss) {
             << "\t}\n"
             << "}\n"
             << "#endif //!__HELPERS_LOAD_ARRAY__\n\n";
+        */
+        ss  << "#define LOAD_ARRAY(ctx, rd, array, length, index_reg, offset, n)\t\t\t\t\t\t\\\n"
+            << "\t{\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\\\n"
+            << "\t\ttcg_gen_sari_tl(index, (index_reg), " << WORDSIZE_SHIFT << ");\t\t\t\t\t\t\t\t\t\t\t\\\n"
+            << "\t\ttcg_gen_addi_tl(index, index, (offset));\t\t\t\t\t\t\t\t\t\t\\\n"
+            << "\t\tTCGLabel *(local_labels##n)[(length)];\t\t\t\t\t\t\t\t\t\t\t\\\n"
+            << "\t\tfor(int i = 0; i < (length); ++i) { (local_labels##n)[i] = gen_new_label(); }\t\\\n"
+            << "\t\tTCGLabel *local_end##n = gen_new_label();\t\t\t\t\t\t\t\t\t\t\\\n"
+            << "\t\tfor(int i = 0; i < (length); ++i){\t\t\t\t\t\t\t\t\t\t\t\t\\\n" 
+            << "\t\t\ttcg_gen_brcondi_tl(TCG_COND_EQ, index, i, ( local_labels##n )[i]);\t\t\t\\\n"
+            << "\t\t}\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\\\n"
+            << "\t\ttcg_gen_brcondi_tl(TCG_COND_ALWAYS, ctx->zero, 0, (local_end##n));\t\t\t\t\\\n"
+            << "\t\tfor(int i = 0; i < (length); ++i) {\t\t\t\t\t\t\t\t\t\t\t\t\\\n"
+            << "\t\t\tgen_set_label((local_labels##n)[i]);\t\t\t\t\t\t\t\t\t\t\\\n"
+            << "\t\t\ttcg_gen_mov_tl((rd), (array)[i]);\t\t\t\t\t\t\t\t\t\t\t\\\n"
+            << "\t\t\ttcg_gen_brcondi_tl(TCG_COND_ALWAYS, ctx->zero, 0, (local_end##n));\t\t\t\\\n"
+            << "\t\t}\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\\\n"
+            << "\t\tgen_set_label((local_end##n));\t\t\t\t\t\t\t\t\t\t\t\t\t\\\n"
+            << "\t}\n\n";
     }
 
     if(mHelperFlag & HelperFlag::STORE_ARRAY) {
-        ss  << "#if !defined(__HELPERS_STORE_ARRAY__)\n"
+        /*ss  << "#if !defined(__HELPERS_STORE_ARRAY__)\n"
             << "#define __HELPERS_STORE_ARRAY__\n"
             << "static void STORE_ARRAY(DisasContext *ctx, TCGv *array, int length, TCGv index_reg, int offset, TCGv rs) {\n"
             << "\tTCGv index = tcg_temp_new();\n"
-            << "\ttcg_gen_srai_tl(index, index_reg, "<< WORDSIZE_SHIFT << ");\n"
+            << "\ttcg_gen_sari_tl(index, index_reg, " << WORDSIZE_SHIFT << ");\n"
             << "\ttcg_gen_addi_tl(index, index, offset);\n"
             << "\tTCGLabel *local_labels[length];\n"
             << "\tfor(int i = 0; i < length; ++i) { local_labels[i] = gen_new_label(); }\n" 
@@ -1194,6 +1262,25 @@ void Translater::GenerateHelpers(std::stringstream& ss) {
             << "\t}\n"
             << "}\n"
             << "#endif //!__HELPERS_STORE_ARRAY__\n\n";
+        */
+        ss  << "#define STORE_ARRAY(ctx, array, length, index_reg, offset, rs, n)\t\t\t\t\t\t\\\n"
+            << "\t{\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\\\n"
+            << "\t\ttcg_gen_sari_tl(index, (index_reg), " << WORDSIZE_SHIFT << ");\t\t\t\t\t\t\t\t\t\t\t\\\n"
+            << "\t\ttcg_gen_addi_tl(index, index, (offset));\t\t\t\t\t\t\t\t\t\t\\\n"
+            << "\t\tTCGLabel *(local_labels##n)[(length)];\t\t\t\t\t\t\t\t\t\t\t\\\n"
+            << "\t\tfor(int i = 0; i < (length); ++i) { (local_labels##n)[i] = gen_new_label(); }\t\\\n"
+            << "\t\tTCGLabel *local_end##n = gen_new_label();\t\t\t\t\t\t\t\t\t\t\\\n"
+            << "\t\tfor(int i = 0; i < (length); ++i){\t\t\t\t\t\t\t\t\t\t\t\t\\\n" 
+            << "\t\t\ttcg_gen_brcondi_tl(TCG_COND_EQ, index, i, ( local_labels##n )[i]);\t\t\t\\\n"
+            << "\t\t}\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\\\n"
+            << "\t\ttcg_gen_brcondi_tl(TCG_COND_ALWAYS, ctx->zero, 0, (local_end##n));\t\t\t\t\\\n"
+            << "\t\tfor(int i = 0; i < (length); ++i) {\t\t\t\t\t\t\t\t\t\t\t\t\\\n"
+            << "\t\t\tgen_set_label((local_labels##n)[i]);\t\t\t\t\t\t\t\t\t\t\\\n"
+            << "\t\t\ttcg_gen_mov_tl((array)[i], (rs));\t\t\t\t\t\t\t\t\t\t\t\\\n"
+            << "\t\t\ttcg_gen_brcondi_tl(TCG_COND_ALWAYS, ctx->zero, 0, (local_end##n));\t\t\t\\\n"
+            << "\t\t}\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\\\n"
+            << "\t\tgen_set_label((local_end##n));\t\t\t\t\t\t\t\t\t\t\t\t\t\\\n"
+            << "\t}\n\n";
     }
 
     if(mHelperFlag & HelperFlag::LOAD_FRAME_ARRAY) {
@@ -1237,11 +1324,11 @@ void Translater::GenerateHelpers(std::stringstream& ss) {
     }
 
     if(mHelperFlag & HelperFlag::LOAD_ARRAY_CONST) {
-        ss  << "#if !defined(__HELPERS_LOAD_ARRAY_CONST__)\n"
+        /*ss  << "#if !defined(__HELPERS_LOAD_ARRAY_CONST__)\n"
             << "#define __HELPERS_LOAD_ARRAY_CONST__\n"
             << "static void LOAD_ARRAY_CONST(DisasContext *ctx, TCGv rd, const unsigned *array, int length, TCGv index_reg, int offset) {\n"
             << "\tTCGv index = tcg_temp_new();\n"
-            << "\ttcg_gen_srai_tl(index, index_reg, "<< WORDSIZE_SHIFT << ");\n"
+            << "\ttcg_gen_sari_tl(index, index_reg, " << WORDSIZE_SHIFT << ");\n"
             << "\ttcg_gen_addi_tl(index, index, offset);\n"
             << "\tTCGLabel *local_labels[length];\n"
             << "\tfor(int i = 0; i < length; ++i) { local_labels[i] = gen_new_label(); }\n" 
@@ -1256,7 +1343,26 @@ void Translater::GenerateHelpers(std::stringstream& ss) {
             << "\t\ttcg_gen_brcondi_tl(TCG_COND_EQ, ctx->zero, 0x0, local_end);\n"
             << "\t}\n"
             << "}\n"
-            << "#endif //!__HELPERS_LOAD_ARRAY_CONST__\n\n";  
+            << "#endif //!__HELPERS_LOAD_ARRAY_CONST__\n\n"; 
+        */
+        ss  << "#define LOAD_ARRAY_CONST(ctx, rd, array, length, index_reg, offset, n)\t\t\t\t\t\\\n"
+            << "\t{\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\\\n"
+            << "\t\ttcg_gen_sari_tl(index, (index_reg), " << WORDSIZE_SHIFT << ");\t\t\t\t\t\t\t\t\t\t\t\\\n"
+            << "\t\ttcg_gen_addi_tl(index, index, (offset));\t\t\t\t\t\t\t\t\t\t\\\n"
+            << "\t\tTCGLabel *(local_labels##n)[(length)];\t\t\t\t\t\t\t\t\t\t\t\\\n"
+            << "\t\tfor(int i = 0; i < (length); ++i) { (local_labels##n)[i] = gen_new_label(); }\t\\\n"
+            << "\t\tTCGLabel *local_end##n = gen_new_label();\t\t\t\t\t\t\t\t\t\t\\\n"
+            << "\t\tfor(int i = 0; i < (length); ++i){\t\t\t\t\t\t\t\t\t\t\t\t\\\n" 
+            << "\t\t\ttcg_gen_brcondi_tl(TCG_COND_EQ, index, i, ( local_labels##n )[i]);\t\t\t\\\n"
+            << "\t\t}\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\\\n"
+            << "\t\ttcg_gen_brcondi_tl(TCG_COND_ALWAYS, ctx->zero, 0, (local_end##n));\t\t\t\t\\\n"
+            << "\t\tfor(int i = 0; i < (length); ++i) {\t\t\t\t\t\t\t\t\t\t\t\t\\\n"
+            << "\t\t\tgen_set_label((local_labels##n)[i]);\t\t\t\t\t\t\t\t\t\t\\\n"
+            << "\t\t\ttcg_gen_movi_tl((rd), (array)[i]);\t\t\t\t\t\t\t\t\t\t\t\\\n"
+            << "\t\t\ttcg_gen_brcondi_tl(TCG_COND_ALWAYS, ctx->zero, 0, (local_end##n));\t\t\t\\\n"
+            << "\t\t}\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\\\n"
+            << "\t\tgen_set_label((local_end##n));\t\t\t\t\t\t\t\t\t\t\t\t\t\\\n"
+            << "\t}\n\n"; 
     }
   
     if(mHelperFlag & HelperFlag::LOGICAL_AND) {

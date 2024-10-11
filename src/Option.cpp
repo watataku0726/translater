@@ -81,14 +81,12 @@ void Instruction::Anaylze(Option* option, std::stringstream& ss) {
             ss << '\n';
     } 
 
-    ss  << "\tTCGv rd_ = get_gpr(ctx, a->rd, EXT_NONE);\n"
-        << "\tTCGv rs1_ = get_gpr(ctx, a->rs1, EXT_NONE);\n"
-        << "\tTCGv rs2_ = get_gpr(ctx, a->rs2, EXT_NONE);\n\n";
-
     for(int i = 0; i < mNumTmp; ++i) 
         ss << "\tTCGv tmp" << i << " = tcg_temp_new();\n";
+    
     for(int i = 0; i < mNumA; ++i) 
         ss << "\tTCGv a" << i << " = tcg_temp_new();\n";
+
     ss  << "\tTCGv r0 = tcg_temp_new();\n"
         << "\ttcg_gen_movi_tl(r0, 0);\n\n";
 

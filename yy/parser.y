@@ -64,6 +64,9 @@ class Option;
 %token          TK_LOAD         "load"
 %token          TK_STORE        "store"
 %token          TK_PROJECTNAME  "projectName"
+%token          TK_RD           "rd"
+%token          TK_RS1          "rs1"
+%token          TK_RS2          "rs2"
 
 %type <expr>        expr
 %type <value>       value
@@ -120,7 +123,10 @@ decls               : declaration                                   { $$ = new O
                     | decls declaration                             { $$ = $1->Add($2); }
                     ;
 
-declaration         : "def" value ':' "local" ';'                   { $$ = new OptDecl($2); }
+declaration         : "def" value ':' "local" ';'                   { $$ = new OptDecl($2, OptDecl::Kind::LOCAL); }
+                    | "def" value ':' "rd" ';'                      { $$ = new OptDecl($2, OptDecl::Kind::RD);}
+                    | "def" value ':' "rs1" ';'                     { $$ = new OptDecl($2, OptDecl::Kind::RS1);}
+                    | "def" value ':' "rs2" ';'                     { $$ = new OptDecl($2, OptDecl::Kind::RS2);}
                     ;
 
 states              : statement                                     { $$ = new OptStateList($1);}
@@ -155,11 +161,11 @@ expr                : expr "&&" expr            { $$ =  OptNode::MakeNode(driver
                     | '(' expr ')'              { $$ = $2; }
                     | value                     { $$ = $1; }
                     | "ival"                    { $$ = new OptNode(@1, OPCODE::OP_CONST, $1); }
-                    | "identifier" '(' args ')' {$$ = new OptFunctionNode(@1, $1, $3); }
-                    | "identifier" '(' ')'      {$$ = new OptFunctionNode(@1, $1, nullptr); }
+                    | "identifier" '(' args ')' { $$ = new OptFunctionNode(@1, $1, $3); }
+                    | "identifier" '(' ')'      { $$ = new OptFunctionNode(@1, $1, nullptr); }
                     ;
 
-value               : "identifier"              { /*$1 += '_';*/ $$ = new OptValueNode(@1, $1); }
+value               : "identifier"              { $$ = new OptValueNode(@1, $1); }
                     ;
 
 args                : expr                      { $$ = new OptArgs($1); }
