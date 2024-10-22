@@ -13,7 +13,6 @@ Function::Function(int pos, const std::string& functionLabel)
     if(functionLabel.substr(0, 2) != "_Z"){
         mFunctionName = "";
         mNumArgs = 0;
-        
     }
     else {
         int idx = 2;

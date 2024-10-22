@@ -27,11 +27,7 @@ class Instruction {
 public:
     Instruction(const std::string* name, OptStateBlock* states)
         :mName(name), mBlock(states), mNumTmp(0), mNumA(0), mNumLabel(0)
-    {   
-        //mLocals.emplace("rd", 0);
-        //mLocals.emplace("rs1", 0);
-        //mLocals.emplace("rs2", 0);
-    }
+    {}
     ~Instruction() {
         delete mName;
         delete mBlock;
@@ -69,17 +65,15 @@ public:
     void error(const yy::location& l, const std::string& m);
     void error(const std::string& m);
 
-    //const std::vector<const std::string*> GetRegisters() const { return mRegisters; }
     Translater* GetTranslater() const { return mTranslater; }
     void WriteInstruction(std::stringstream& ss);
 private:
-    void scan_begin();
+    bool scan_begin();
     void scan_end();
 
 private:
     std::string mFileName;
     std::vector<Instruction*> mInstructions;
-    //std::vector<const std::string*> mRegisters;
     const std::string* mProjectName;
     Translater* mTranslater;
     int mErrorCount;

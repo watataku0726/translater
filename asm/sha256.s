@@ -190,59 +190,78 @@ $func_end1:
 _Z15computeHashCorev:                   # @_Z15computeHashCorev
 
 # %bb.0:                                # %entry
-	?stki	sp, sp, 20.
+	?stki	sp, sp, 24.
 	?assign	tmp1, hidx.
 	?ld	2, tmp2, 0(tmp1)
-	?st	2, 12(sp), tmp2.
+	?st	2, 16(sp), tmp2.
 	?ld	2, tmp1, 0(tmp1)
 	tcg_gen_brcondi_tl(TCG_COND_GTU, tmp1, 15, label_BB2_2);
 	?goto	label_BB2_1.
 label_BB2_1:                            # %if.then
-	?ld	2, tmp1, 12(sp)
+	?ld	2, tmp1, 16(sp)
 	!shli	tmp1, tmp1, 2.
 	?assign	tmp2, W.
 	!add	tmp1, tmp1, tmp2.
 	?ld	2, tmp1, 0(tmp1)
-	?st	2, 16(sp), tmp1.
-	?goto	label_BB2_3.
+	?st	2, 20(sp), tmp1.
+	?goto	label_BB2_7.
 label_BB2_2:                            # %if.else
+	?assign	tmp1, W.
+	?ld	2, tmp2, 56(tmp1)
+	!shri	tmp3, tmp2, 17.
+	!shli	tmp4, tmp2, 15.
+	!or	tmp3, tmp3, tmp4.
+	!shri	tmp4, tmp2, 19.
+	!shli	tmp5, tmp2, 13.
+	!or	tmp4, tmp4, tmp5.
+	!xor	tmp3, tmp3, tmp4.
+	!shri	tmp2, tmp2, 10.
+	!xor	tmp2, tmp3, tmp2.
+	?ld	2, tmp3, 36(tmp1)
+	!add	tmp2, tmp2, tmp3.
+	?ld	2, tmp3, 4(tmp1)
+	!shri	tmp4, tmp3, 7.
+	!shli	tmp5, tmp3, 25.
+	!or	tmp4, tmp4, tmp5.
+	!shri	tmp5, tmp3, 18.
+	!shli	tmp6, tmp3, 14.
+	!or	tmp5, tmp5, tmp6.
+	!xor	tmp4, tmp4, tmp5.
+	!shri	tmp3, tmp3, 3.
+	!xor	tmp3, tmp4, tmp3.
+	!add	tmp2, tmp2, tmp3.
+	?ld	2, tmp1, 0(tmp1)
+	!add	tmp1, tmp2, tmp1.
+	?st	2, 20(sp), tmp1.
+	!movi	tmp1, 0.
+	?st	2, 12(sp), tmp1.
+	?goto	label_BB2_3.
+label_BB2_3:                            # %for.cond
+                                        # =>This Inner Loop Header: Depth=1
+	?ld	2, tmp1, 12(sp)
+	tcg_gen_brcondi_tl(TCG_COND_GT, tmp1, 14, label_BB2_6);
+	?goto	label_BB2_4.
+label_BB2_4:                            # %for.body
+                                        #   in Loop: Header=BB2_3 Depth=1
 	?ld	2, tmp1, 12(sp)
 	!shli	tmp1, tmp1, 2.
 	?assign	tmp2, W.
-	!add	tmp1, tmp2, tmp1.
-	?ld	2, tmp3, -8(tmp1)
-	!shri	tmp4, tmp3, 17.
-	!shli	tmp5, tmp3, 15.
-	!or	tmp4, tmp4, tmp5.
-	!shri	tmp5, tmp3, 19.
-	!shli	tmp6, tmp3, 13.
-	!or	tmp5, tmp5, tmp6.
-	!xor	tmp4, tmp4, tmp5.
-	!shri	tmp3, tmp3, 10.
-	!xor	tmp3, tmp4, tmp3.
-	?ld	2, tmp4, -28(tmp1)
-	!add	tmp3, tmp3, tmp4.
-	?ld	2, tmp4, -60(tmp1)
-	!shri	tmp5, tmp4, 7.
-	!shli	tmp6, tmp4, 25.
-	!or	tmp5, tmp5, tmp6.
-	!shri	tmp6, tmp4, 18.
-	!shli	a0, tmp4, 14.
-	!or	tmp6, tmp6, a0.
-	!xor	tmp5, tmp5, tmp6.
-	!shri	tmp4, tmp4, 3.
-	!xor	tmp4, tmp5, tmp4.
-	!add	tmp3, tmp3, tmp4.
-	?ld	2, tmp1, -64(tmp1)
-	!add	tmp1, tmp3, tmp1.
-	?st	2, 16(sp), tmp1.
-	?ld	2, tmp1, 16(sp)
-	?ld	2, tmp3, 12(sp)
-	!shli	tmp3, tmp3, 2.
-	!add	tmp2, tmp3, tmp2.
-	?st	2, 0(tmp2), tmp1.
+	!add	tmp1, tmp1, tmp2.
+	?ld	2, tmp2, 4(tmp1)
+	?st	2, 0(tmp1), tmp2.
+	?goto	label_BB2_5.
+label_BB2_5:                            # %for.inc
+                                        #   in Loop: Header=BB2_3 Depth=1
+	?ld	2, tmp1, 12(sp)
+	!addi	tmp1, tmp1, 1.
+	?st	2, 12(sp), tmp1.
 	?goto	label_BB2_3.
-label_BB2_3:                            # %if.end
+label_BB2_6:                            # %for.end
+	?ld	2, tmp1, 20(sp)
+	?assign	tmp2, W.
+	?st	2, 60(tmp2), tmp1.
+	?goto	label_BB2_7.
+label_BB2_7:                            # %if.end
 	?assign	tmp1, m.
 	?ld	2, tmp2, 28(tmp1)
 	?ld	2, tmp3, 16(tmp1)
@@ -265,13 +284,13 @@ label_BB2_3:                            # %if.end
 	!and	tmp3, tmp3, tmp5.
 	!xor	tmp3, tmp4, tmp3.
 	!add	tmp2, tmp2, tmp3.
-	?ld	2, tmp3, 12(sp)
+	?ld	2, tmp3, 16(sp)
 	!shli	tmp3, tmp3, 2.
 	?assign	tmp4, _ZL1K.
 	!add	tmp3, tmp3, tmp4.
 	?ld	2, tmp3, 0(tmp3)
 	!add	tmp2, tmp2, tmp3.
-	?ld	2, tmp3, 16(sp)
+	?ld	2, tmp3, 20(sp)
 	!add	tmp2, tmp2, tmp3.
 	?st	2, 8(sp), tmp2.
 	?ld	2, tmp2, 0(tmp1)
@@ -321,17 +340,17 @@ label_BB2_3:                            # %if.end
 	!andi	tmp1, tmp1, 1.
 	?st	2, 0(sp), tmp1.
 	?ld	2, tmp1, 0(sp)
-	tcg_gen_brcondi_tl(TCG_COND_EQ, tmp1, 0, label_BB2_5);
-	?goto	label_BB2_4.
-label_BB2_4:                            # %cond.true
+	tcg_gen_brcondi_tl(TCG_COND_EQ, tmp1, 0, label_BB2_9);
+	?goto	label_BB2_8.
+label_BB2_8:                            # %cond.true
 	!movi	tmp1, 0.
-	?goto	label_BB2_6.
-label_BB2_5:                            # %cond.false
+	?goto	label_BB2_10.
+label_BB2_9:                            # %cond.false
 	?assign	tmp1, hidx.
 	?ld	2, tmp1, 0(tmp1)
 	!addi	tmp1, tmp1, 1.
-	?goto	label_BB2_6.
-label_BB2_6:                            # %cond.end
+	?goto	label_BB2_10.
+label_BB2_10:                           # %cond.end
 	?assign	tmp2, hidx.
 	?st	2, 0(tmp2), tmp1.
 	?ld	2, r0, 0(sp)
@@ -354,6 +373,10 @@ _Z5resetv:                              # @_Z5resetv
 	?assign	tmp1, state.
 	?st	2, 0(tmp1), tmp2.
 	?assign	tmp1, tmpWord.
+	?st	2, 0(tmp1), tmp2.
+	?assign	tmp1, inBytes.
+	?st	2, 0(tmp1), tmp2.
+	?assign	tmp1, hidx.
 	?st	2, 0(tmp1), tmp2.
 	?st	2, 0(sp), tmp2.
 	?goto	label_BB3_1.
@@ -1106,5 +1129,5 @@ _ZL2H0:
 	.4bytes	1541459225                      # 0x5be0cd19
 	.size	_ZL2H0, 32
 
-	.ident	"clang version 11.0.0 (llvm-c2rtl 4503b92beb2febb87c0daf43d5c3855c48f469c0) (llvm-c2rtl 3c2c9173fbec4e2793cb6eab8776bbabf1af27e1)"
+	.ident	"clang version 11.0.0 (llvm-c2rtl 85d767eb6c5598622d5aa2f7c78629f312408853) (llvm-c2rtl a43ceba56178eb1df1f253c1967baa0697c9b887)"
 	.section	".note.GNU-stack","",@progbits

@@ -16,16 +16,14 @@ Option::~Option() {
     for(auto inst : mInstructions)
         delete inst;
     mInstructions.clear();
-    //for(auto reg : mRegisters)
-    //    delete reg;
-    //mRegisters.clear();
     delete mProjectName;
 }
 
 bool Option::compile(const std::string& f) {
 
     mFileName = f;
-    scan_begin();
+    if(!scan_begin())
+        return false;
     yy::parser parser(*this);
     int result = parser.parse();
     scan_end();
@@ -52,7 +50,6 @@ void Option::DefineInstruction(const yy::location& l, const std::string* name, O
 }
 
 void Option::DefineRegister(const yy::location& l, const std::string* name){
-    //mRegisters.push_back(name);
     mTranslater->AddGlobalRegister(*name);
     delete name;
 }
@@ -90,9 +87,6 @@ void Instruction::Anaylze(Option* option, std::stringstream& ss) {
     ss  << "\tTCGv r0 = tcg_temp_new();\n"
         << "\ttcg_gen_movi_tl(r0, 0);\n\n";
 
-        
-    //ss << '\n';
-
     ss << tmp_ss.rdbuf();
     ss << "\treturn true;\n}\n\n";
 }
@@ -102,5 +96,5 @@ int Instruction::IsLocal(const std::string& local) {
     if(iter != mLocals.end()) {
         return iter->second;
     }
-    return -1;//option->GetTranslater()->IsGlobalRegister(local);
+    return -1;
 }

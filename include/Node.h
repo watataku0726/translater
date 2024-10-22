@@ -32,17 +32,7 @@ public:
         mArgs.push_back(add);
         return this;
     }
-/*
-    template<typename Fn>
-    void for_each(const Fn& func) {
-        std::for_each(mArgs.begin(), mArgs.end(), func);
-    }
 
-    template<typename Fn>
-    void for_each_rev(const Fn& func) {
-        std::for_each(mArgs.rbegin(), mArgs.rend(), func);
-    }
-*/
     size_t Size() const  { return mArgs.size(); }
     T* Get(size_t idx) { return mArgs[idx]; }
     T* operator[](size_t idx) { return mArgs[idx]; }
@@ -91,8 +81,6 @@ public:
         delete mString;
     }
 
-    virtual int Push(Option* option) const;
-    virtual int Pop(Option* option) const;
 
     const yy::location& Location() const { return mL; }
     OPCODE Op() const { return mOp; }
@@ -124,8 +112,6 @@ public:
 
     void Analyze(Option* option, Instruction* inst, std::stringstream& ss, int depth, int& times);
 
-    int Push(Option* option) const;
-    int Pop(Option* option) const;
 };
 
 class OptFunctionNode : public OptNode {
@@ -138,9 +124,6 @@ public:
     }
 
     void Analyze(Option* option, Instruction* inst, std::stringstream& ss, int depth, int& times);
-
-    int Push(Option* option) const;
-    int Pop(Option* option) const;
 
 private:
     OptArgs* mArgs;
@@ -157,8 +140,6 @@ public:
     }
 
     void Analyze(Option* option, Instruction* inst, std::stringstream& ss, int depth);
-    void PushValue(Option* option) { mValue->Push(option); }
-    void PopValue(Option* option) { mValue->Pop(option); }
 
 private:
     const yy::location mL;
@@ -236,9 +217,6 @@ public:
     }
 
     virtual void Analyze(Option* option, Instruction* inst, std::stringstream& ss, int depth) = 0;
-//    virtual void case_analyze(case_action_param) {
-//
-//    }
 
 protected:
     const yy::location& mL;

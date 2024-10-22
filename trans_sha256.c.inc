@@ -21,7 +21,7 @@
 		gen_set_label((local_end##n));													\
 	}
 
-#define STORE_ARRAY(ctx, array, length, index_reg, offset, rs, n)						\
+#define STORE_ARRAY(ctx, array, length, index_reg, offset, rs, n)					\
 	{																					\
 		tcg_gen_sari_tl(index, (index_reg), 2);											\
 		tcg_gen_addi_tl(index, index, (offset));										\
@@ -61,7 +61,7 @@
 
 /*=========================================================================================*/
 /*	1. Install "trans_sha256.c.inc" in target/riscv/translate.c  
-  	2. The function void riscv_translate_init(void) in target/riscv/translate.c calls the function hoge.
+  	2. The function void riscv_translate_init(void) in target/riscv/translate.c calls the function "riscv_sha256_translate_init".
   	3. Add the following variables as member variables to the struct CPUArchState in target/riscv/cpu.h.
   		target_ulong H[8];
   		target_ulong W[16];
@@ -140,131 +140,136 @@ static void computeHash(DisasContext *ctx, TCGv r0);
 static void convBigEndianWithStringTerminationPadding(DisasContext *ctx, TCGv r0, TCGv a0) {
 	TCGLabel *label_BB0_1 = gen_new_label();
 	TCGLabel *label_BB0_2 = gen_new_label();
+	TCGLabel *label_BB0_3 = gen_new_label();
 	TCGLabel *label_BB0_4 = gen_new_label();
+	TCGLabel *label_BB0_5 = gen_new_label();
 	TCGLabel *label_BB0_6 = gen_new_label();
 	TCGLabel *label_BB0_7 = gen_new_label();
+	TCGLabel *label_BB0_8 = gen_new_label();
 	TCGLabel *label_BB0_9 = gen_new_label();
+	TCGLabel *label_BB0_10 = gen_new_label();
 	TCGLabel *label_BB0_11 = gen_new_label();
+	TCGLabel *label_BB0_12 = gen_new_label();
 	TCGLabel *label_BB0_13 = gen_new_label();
+	TCGLabel *label_BB0_14 = gen_new_label();
 	TCGLabel *label_BB0_15 = gen_new_label();
-	TCGLabel *label_BB0_17 = gen_new_label();
-	TCGLabel *label_BB0_19 = gen_new_label();
+	TCGLabel *label_BB0_16 = gen_new_label();
 	TCGLabel *end_label = gen_new_label();
 
 	TCGv tmp1 = tcg_temp_new();
 	TCGv tmp2 = tcg_temp_new();
 	TCGv tmp3 = tcg_temp_new();
-	TCGv tmp4 = tcg_temp_new();
-	TCGv tmp5 = tcg_temp_new();
-	TCGv tmp6 = tcg_temp_new();
 	tcg_gen_movi_tl(tmp1, 0);
 	tcg_gen_movi_tl(tmp2, 0);
 	tcg_gen_movi_tl(tmp3, 0);
-	tcg_gen_movi_tl(tmp4, 0);
-	tcg_gen_movi_tl(tmp5, 0);
-	tcg_gen_movi_tl(tmp6, 0);
-	TCGv a1 = tcg_temp_new();
-	TCGv a2 = tcg_temp_new();
-	TCGv a3 = tcg_temp_new();
-	TCGv a4 = tcg_temp_new();
-	TCGv a5 = tcg_temp_new();
-	TCGv a6 = tcg_temp_new();
-	TCGv a7 = tcg_temp_new();
-	tcg_gen_movi_tl(a1, 0);
-	tcg_gen_movi_tl(a2, 0);
-	tcg_gen_movi_tl(a3, 0);
-	tcg_gen_movi_tl(a4, 0);
-	tcg_gen_movi_tl(a5, 0);
-	tcg_gen_movi_tl(a6, 0);
-	tcg_gen_movi_tl(a7, 0);
 
-	tcg_gen_shri_tl(tmp1, a0, 8);
-	tcg_gen_andi_tl(a2, tmp1, 255);
-	tcg_gen_andi_tl(tmp6, a0, 255);
-	tcg_gen_setcondi_tl(TCG_COND_EQ, a1, tmp6, 0);
-	tcg_gen_setcondi_tl(TCG_COND_EQ, a3, a2, 0);
-	tcg_gen_or_tl(tmp1, a1, a3);
-	tcg_gen_shri_tl(tmp4, a0, 24);
-	tcg_gen_shri_tl(tmp2, a0, 16);
-	tcg_gen_andi_tl(tmp5, tmp2, 255);
-	tcg_gen_setcondi_tl(TCG_COND_EQ, a0, tmp5, 0);
-	tcg_gen_or_tl(tmp3, tmp1, a0);
-	tcg_gen_movi_tl(tmp2, 0);
-	tcg_gen_brcond_tl(TCG_COND_NE, tmp3, ctx->zero, label_BB0_2);
+	TCGv sp[6]; for(int i = 0; i < 6; ++i) { sp[i] = tcg_temp_new(); }
+
+	tcg_gen_mov_tl(sp[5], a0);
+	tcg_gen_movi_tl(tmp1, 0);
+	tcg_gen_mov_tl(sp[4], tmp1);
+	tcg_gen_mov_tl(sp[3], tmp1);
+	tcg_gen_mov_tl(sp[2], tmp1);
+	tcg_gen_mov_tl(sp[1], tmp1);
 	tcg_gen_brcondi_tl(TCG_COND_ALWAYS, ctx->zero, 0, label_BB0_1);
 	
 	gen_set_label(label_BB0_1);
-	tcg_gen_movi_tl(a4, 4);
-	tcg_gen_brcondi_tl(TCG_COND_NE, tmp4, 0, label_BB0_7);
+	tcg_gen_mov_tl(tmp1, sp[1]);
+	tcg_gen_brcondi_tl(TCG_COND_GT, tmp1, 3, label_BB0_13);
 	tcg_gen_brcondi_tl(TCG_COND_ALWAYS, ctx->zero, 0, label_BB0_2);
 	
 	gen_set_label(label_BB0_2);
-	/*Assign padState to a4.*/
-	tcg_gen_movi_tl(a5, 1);
-	tcg_gen_mov_tl(padState, a5);
-	tcg_gen_andi_tl(a4, tmp1, 1);
-	tcg_gen_or_tl(a5, tmp5, a4);
-	tcg_gen_andi_tl(a4, tmp3, 1);
-	tcg_gen_or_tl(a4, tmp4, a4);
-	tcg_gen_setcondi_tl(TCG_COND_EQ, a7, a4, 0);
-	tcg_gen_movi_tl(a4, 3);
-	tcg_gen_movi_tl(a6, 0);
-	tcg_gen_brcond_tl(TCG_COND_NE, a7, a6, label_BB0_4);
-	tcg_gen_mov_tl(a4, a6);
+	tcg_gen_mov_tl(tmp1, sp[5]);
+	tcg_gen_mov_tl(tmp2, sp[1]);
+	tcg_gen_shli_tl(tmp2, tmp2, 3);
+	tcg_gen_shr_tl(tmp1, tmp1, tmp2);
+	tcg_gen_andi_tl(tmp1, tmp1, 255);
+	tcg_gen_mov_tl(sp[0], tmp1);
+	tcg_gen_mov_tl(tmp1, sp[3]);
+	tcg_gen_shli_tl(tmp1, tmp1, 8);
+	tcg_gen_mov_tl(tmp2, sp[4]);
+	tcg_gen_brcondi_tl(TCG_COND_EQ, tmp2, 0, label_BB0_4);
+	tcg_gen_brcondi_tl(TCG_COND_ALWAYS, ctx->zero, 0, label_BB0_3);
+	
+	gen_set_label(label_BB0_3);
+	tcg_gen_movi_tl(tmp2, 0);
+	tcg_gen_brcondi_tl(TCG_COND_ALWAYS, ctx->zero, 0, label_BB0_8);
 	
 	gen_set_label(label_BB0_4);
-	tcg_gen_setcondi_tl(TCG_COND_EQ, a7, a5, 0);
-	tcg_gen_movi_tl(a5, 2);
-	tcg_gen_brcond_tl(TCG_COND_NE, a7, a6, label_BB0_6);
-	tcg_gen_mov_tl(a5, a6);
+	tcg_gen_mov_tl(tmp2, sp[0]);
+	tcg_gen_brcondi_tl(TCG_COND_NE, tmp2, 0, label_BB0_6);
+	tcg_gen_brcondi_tl(TCG_COND_ALWAYS, ctx->zero, 0, label_BB0_5);
+	
+	gen_set_label(label_BB0_5);
+	tcg_gen_movi_tl(tmp2, 128);
+	tcg_gen_brcondi_tl(TCG_COND_ALWAYS, ctx->zero, 0, label_BB0_7);
 	
 	gen_set_label(label_BB0_6);
-	tcg_gen_andi_tl(a6, a1, 1);
-	tcg_gen_or_tl(a6, a2, a6);
-	tcg_gen_setcondi_tl(TCG_COND_EQ, a6, a6, 0);
-	tcg_gen_andi_tl(a6, a6, 1);
-	tcg_gen_or_tl(a5, a5, a6);
-	tcg_gen_add_tl(a4, a4, a5);
+	tcg_gen_mov_tl(tmp2, sp[0]);
+	tcg_gen_brcondi_tl(TCG_COND_ALWAYS, ctx->zero, 0, label_BB0_7);
 	
 	gen_set_label(label_BB0_7);
-	tcg_gen_movi_tl(a5, 32768);
-	tcg_gen_brcond_tl(TCG_COND_NE, a3, tmp2, label_BB0_9);
-	tcg_gen_shli_tl(a5, a2, 8);
+	tcg_gen_brcondi_tl(TCG_COND_ALWAYS, ctx->zero, 0, label_BB0_8);
+	
+	gen_set_label(label_BB0_8);
+	tcg_gen_or_tl(tmp1, tmp1, tmp2);
+	tcg_gen_mov_tl(sp[3], tmp1);
+	tcg_gen_mov_tl(tmp1, sp[4]);
+	tcg_gen_brcondi_tl(TCG_COND_NE, tmp1, 0, label_BB0_11);
+	tcg_gen_brcondi_tl(TCG_COND_ALWAYS, ctx->zero, 0, label_BB0_9);
 	
 	gen_set_label(label_BB0_9);
-	/*Assign inBytes to a2.*/
-	tcg_gen_mov_tl(a3, inBytes);
-	tcg_gen_add_tl(a3, a3, a4);
-	tcg_gen_mov_tl(inBytes, a3);
-	tcg_gen_movi_tl(a2, 8388608);
-	tcg_gen_brcond_tl(TCG_COND_NE, a1, tmp2, label_BB0_11);
-	tcg_gen_shli_tl(tmp6, tmp6, 16);
-	tcg_gen_or_tl(a2, tmp6, a5);
+	tcg_gen_mov_tl(tmp1, sp[0]);
+	tcg_gen_brcondi_tl(TCG_COND_NE, tmp1, 0, label_BB0_11);
+	tcg_gen_brcondi_tl(TCG_COND_ALWAYS, ctx->zero, 0, label_BB0_10);
+	
+	gen_set_label(label_BB0_10);
+	tcg_gen_mov_tl(tmp1, sp[1]);
+	tcg_gen_mov_tl(tmp2, sp[2]);
+	tcg_gen_add_tl(tmp1, tmp2, tmp1);
+	tcg_gen_mov_tl(sp[2], tmp1);
+	tcg_gen_brcondi_tl(TCG_COND_ALWAYS, ctx->zero, 0, label_BB0_11);
 	
 	gen_set_label(label_BB0_11);
-	tcg_gen_movi_tl(a1, 128);
-	tcg_gen_mov_tl(tmp6, a1);
-	tcg_gen_brcond_tl(TCG_COND_NE, a0, tmp2, label_BB0_13);
-	tcg_gen_mov_tl(tmp6, tmp5);
+	tcg_gen_mov_tl(tmp1, sp[0]);
+	tcg_gen_setcondi_tl(TCG_COND_EQ, tmp1, tmp1, 0);
+	tcg_gen_andi_tl(tmp1, tmp1, 1);
+	tcg_gen_mov_tl(tmp2, sp[4]);
+	tcg_gen_or_tl(tmp1, tmp2, tmp1);
+	tcg_gen_mov_tl(sp[4], tmp1);
+	tcg_gen_brcondi_tl(TCG_COND_ALWAYS, ctx->zero, 0, label_BB0_12);
+	
+	gen_set_label(label_BB0_12);
+	tcg_gen_mov_tl(tmp1, sp[1]);
+	tcg_gen_addi_tl(tmp1, tmp1, 1);
+	tcg_gen_mov_tl(sp[1], tmp1);
+	tcg_gen_brcondi_tl(TCG_COND_ALWAYS, ctx->zero, 0, label_BB0_1);
 	
 	gen_set_label(label_BB0_13);
-	tcg_gen_setcondi_tl(TCG_COND_EQ, tmp5, tmp4, 0);
-	tcg_gen_brcond_tl(TCG_COND_NE, tmp5, tmp2, label_BB0_15);
-	tcg_gen_mov_tl(a1, tmp4);
+	tcg_gen_mov_tl(tmp1, sp[4]);
+	tcg_gen_brcondi_tl(TCG_COND_EQ, tmp1, 0, label_BB0_15);
+	tcg_gen_brcondi_tl(TCG_COND_ALWAYS, ctx->zero, 0, label_BB0_14);
+	
+	gen_set_label(label_BB0_14);
+	/*Assign padState to tmp1.*/
+	tcg_gen_movi_tl(tmp2, 1);
+	tcg_gen_mov_tl(padState, tmp2);
+	tcg_gen_mov_tl(tmp1, sp[2]);
+	/*Assign inBytes to tmp2.*/
+	tcg_gen_mov_tl(tmp3, inBytes);
+	tcg_gen_add_tl(tmp1, tmp3, tmp1);
+	tcg_gen_mov_tl(inBytes, tmp1);
+	tcg_gen_brcondi_tl(TCG_COND_ALWAYS, ctx->zero, 0, label_BB0_16);
 	
 	gen_set_label(label_BB0_15);
-	tcg_gen_mov_tl(tmp4, tmp2);
-	tcg_gen_brcond_tl(TCG_COND_NE, tmp3, tmp2, label_BB0_17);
-	tcg_gen_mov_tl(tmp4, a1);
+	/*Assign inBytes to tmp1.*/
+	tcg_gen_mov_tl(tmp2, inBytes);
+	tcg_gen_addi_tl(tmp2, tmp2, 4);
+	tcg_gen_mov_tl(inBytes, tmp2);
+	tcg_gen_brcondi_tl(TCG_COND_ALWAYS, ctx->zero, 0, label_BB0_16);
 	
-	gen_set_label(label_BB0_17);
-	tcg_gen_brcond_tl(TCG_COND_NE, tmp1, tmp2, label_BB0_19);
-	tcg_gen_mov_tl(tmp2, tmp6);
-	
-	gen_set_label(label_BB0_19);
-	tcg_gen_or_tl(tmp1, tmp2, a2);
-	tcg_gen_shli_tl(tmp1, tmp1, 8);
-	tcg_gen_or_tl(r0, tmp4, tmp1);
+	gen_set_label(label_BB0_16);
+	tcg_gen_mov_tl(r0, sp[3]);
 	tcg_gen_brcondi_tl(TCG_COND_ALWAYS, ctx->zero, 0, end_label);
 
 	gen_set_label(end_label);
@@ -275,185 +280,95 @@ static void createPaddedInput(DisasContext *ctx, TCGv r0, TCGv a0) {
 	TCGLabel *label_BB1_2 = gen_new_label();
 	TCGLabel *label_BB1_3 = gen_new_label();
 	TCGLabel *label_BB1_4 = gen_new_label();
-	TCGLabel *label_BB1_10 = gen_new_label();
-	TCGLabel *label_BB1_11 = gen_new_label();
-	TCGLabel *label_BB1_13 = gen_new_label();
-	TCGLabel *label_BB1_15 = gen_new_label();
-	TCGLabel *label_BB1_17 = gen_new_label();
-	TCGLabel *label_BB1_19 = gen_new_label();
-	TCGLabel *label_BB1_21 = gen_new_label();
-	TCGLabel *label_BB1_23 = gen_new_label();
-	TCGLabel *label_BB1_24 = gen_new_label();
-	TCGLabel *label_BB1_26 = gen_new_label();
 	TCGLabel *label_BB1_5 = gen_new_label();
+	TCGLabel *label_BB1_6 = gen_new_label();
 	TCGLabel *label_BB1_7 = gen_new_label();
+	TCGLabel *label_BB1_8 = gen_new_label();
 	TCGLabel *label_BB1_9 = gen_new_label();
 	TCGLabel *end_label = gen_new_label();
 
 	TCGv tmp1 = tcg_temp_new();
 	TCGv tmp2 = tcg_temp_new();
 	TCGv tmp3 = tcg_temp_new();
-	TCGv tmp4 = tcg_temp_new();
-	TCGv tmp5 = tcg_temp_new();
-	TCGv tmp6 = tcg_temp_new();
 	tcg_gen_movi_tl(tmp1, 0);
 	tcg_gen_movi_tl(tmp2, 0);
 	tcg_gen_movi_tl(tmp3, 0);
-	tcg_gen_movi_tl(tmp4, 0);
-	tcg_gen_movi_tl(tmp5, 0);
-	tcg_gen_movi_tl(tmp6, 0);
-	TCGv a1 = tcg_temp_new();
-	TCGv a2 = tcg_temp_new();
-	TCGv a3 = tcg_temp_new();
-	TCGv a4 = tcg_temp_new();
-	TCGv a5 = tcg_temp_new();
-	TCGv a6 = tcg_temp_new();
-	TCGv a7 = tcg_temp_new();
-	tcg_gen_movi_tl(a1, 0);
-	tcg_gen_movi_tl(a2, 0);
-	tcg_gen_movi_tl(a3, 0);
-	tcg_gen_movi_tl(a4, 0);
-	tcg_gen_movi_tl(a5, 0);
-	tcg_gen_movi_tl(a6, 0);
-	tcg_gen_movi_tl(a7, 0);
 	TCGv index = tcg_temp_new();
 	tcg_gen_movi_tl(index, 0);
 
-	TCGv sp[1]; for(int i = 0; i < 1; ++i) { sp[i] = tcg_temp_new(); }
+	TCGv sp[4]; for(int i = 0; i < 4; ++i) { sp[i] = tcg_temp_new(); }
 
+	tcg_gen_mov_tl(sp[2], a0);
 	/*Assign pidx to tmp1.*/
-	tcg_gen_mov_tl(tmp2, pidx);
-	/*Assign padState to a7.*/
-	tcg_gen_mov_tl(tmp4, padState);
-	tcg_gen_movi_tl(tmp3, 0);
-	tcg_gen_brcondi_tl(TCG_COND_EQ, tmp4, 0, label_BB1_3);
+	tcg_gen_mov_tl(tmp1, pidx);
+	tcg_gen_setcondi_tl(TCG_COND_EQ, tmp1, tmp1, 15);
+	tcg_gen_andi_tl(tmp1, tmp1, 1);
+	tcg_gen_mov_tl(sp[0], tmp1);
+	/*Assign padState to tmp1.*/
+	tcg_gen_mov_tl(tmp1, padState);
+	tcg_gen_brcondi_tl(TCG_COND_EQ, tmp1, 0, label_BB1_5);
 	tcg_gen_brcondi_tl(TCG_COND_ALWAYS, ctx->zero, 0, label_BB1_1);
 	
 	gen_set_label(label_BB1_1);
-	tcg_gen_mov_tl(tmp4, tmp3);
-	tcg_gen_brcondi_tl(TCG_COND_NE, tmp2, 15, label_BB1_24);
+	tcg_gen_mov_tl(tmp1, sp[0]);
+	tcg_gen_brcondi_tl(TCG_COND_EQ, tmp1, 0, label_BB1_3);
 	tcg_gen_brcondi_tl(TCG_COND_ALWAYS, ctx->zero, 0, label_BB1_2);
 	
 	gen_set_label(label_BB1_2);
-	tcg_gen_movi_tl(tmp4, 2);
-	tcg_gen_mov_tl(padState, tmp4);
-	/*Assign inBytes to tmp4.*/
-	tcg_gen_mov_tl(tmp4, inBytes);
-	tcg_gen_shli_tl(tmp4, tmp4, 3);
-	tcg_gen_brcondi_tl(TCG_COND_ALWAYS, ctx->zero, 0, label_BB1_24);
+	/*Assign inBytes to tmp1.*/
+	tcg_gen_mov_tl(tmp1, inBytes);
+	tcg_gen_shli_tl(tmp1, tmp1, 3);
+	tcg_gen_mov_tl(sp[1], tmp1);
+	/*Assign padState to tmp1.*/
+	tcg_gen_movi_tl(tmp2, 2);
+	tcg_gen_mov_tl(padState, tmp2);
+	tcg_gen_brcondi_tl(TCG_COND_ALWAYS, ctx->zero, 0, label_BB1_4);
 	
 	gen_set_label(label_BB1_3);
-	tcg_gen_shri_tl(tmp4, a0, 8);
-	tcg_gen_andi_tl(a5, tmp4, 255);
-	tcg_gen_andi_tl(a3, a0, 255);
-	tcg_gen_setcondi_tl(TCG_COND_EQ, a4, a3, 0);
-	tcg_gen_setcondi_tl(TCG_COND_EQ, a6, a5, 0);
-	tcg_gen_or_tl(tmp4, a4, a6);
-	tcg_gen_shri_tl(tmp5, a0, 16);
-	tcg_gen_andi_tl(a1, tmp5, 255);
-	tcg_gen_setcondi_tl(TCG_COND_EQ, a2, a1, 0);
-	tcg_gen_or_tl(tmp5, a2, tmp4);
-	tcg_gen_shri_tl(tmp6, a0, 24);
-	tcg_gen_andi_tl(a0, tmp5, 1);
-	tcg_gen_mov_tl(sp[0], a3);
-	tcg_gen_brcondi_tl(TCG_COND_EQ, tmp6, 0, label_BB1_5);
+	tcg_gen_movi_tl(tmp1, 0);
+	tcg_gen_mov_tl(sp[1], tmp1);
 	tcg_gen_brcondi_tl(TCG_COND_ALWAYS, ctx->zero, 0, label_BB1_4);
 	
 	gen_set_label(label_BB1_4);
-	tcg_gen_brcondi_tl(TCG_COND_EQ, a0, 0, label_BB1_10);
-	tcg_gen_brcondi_tl(TCG_COND_ALWAYS, ctx->zero, 0, label_BB1_5);
-	
-	gen_set_label(label_BB1_10);
-	tcg_gen_movi_tl(a7, 4);
-	/*Assign inBytes to a0.*/
-	tcg_gen_mov_tl(r0, inBytes);
-	
-	gen_set_label(label_BB1_11);
-	tcg_gen_movi_tl(a3, 32768);
-	tcg_gen_movi_tl(a0, 0);
-	tcg_gen_brcond_tl(TCG_COND_NE, a6, a0, label_BB1_13);
-	tcg_gen_shli_tl(a3, a5, 8);
-	
-	gen_set_label(label_BB1_13);
-	tcg_gen_add_tl(a5, r0, a7);
-	/*Assign inBytes to a6.*/
-	tcg_gen_mov_tl(inBytes, a5);
-	tcg_gen_movi_tl(a5, 8388608);
-	tcg_gen_brcond_tl(TCG_COND_NE, a4, a0, label_BB1_15);
-	tcg_gen_mov_tl(a4, sp[0]);
-	tcg_gen_shli_tl(a4, a4, 16);
-	tcg_gen_or_tl(a5, a3, a4);
-	
-	gen_set_label(label_BB1_15);
-	tcg_gen_movi_tl(a4, 128);
-	tcg_gen_mov_tl(a3, a4);
-	tcg_gen_brcond_tl(TCG_COND_NE, a2, a0, label_BB1_17);
-	tcg_gen_mov_tl(a3, a1);
-	
-	gen_set_label(label_BB1_17);
-	tcg_gen_setcondi_tl(TCG_COND_EQ, a1, tmp6, 0);
-	tcg_gen_brcond_tl(TCG_COND_NE, a1, a0, label_BB1_19);
-	tcg_gen_mov_tl(a4, tmp6);
-	
-	gen_set_label(label_BB1_19);
-	tcg_gen_mov_tl(tmp6, a0);
-	tcg_gen_brcond_tl(TCG_COND_NE, tmp5, a0, label_BB1_21);
-	tcg_gen_mov_tl(tmp6, a4);
-	
-	gen_set_label(label_BB1_21);
-	tcg_gen_brcond_tl(TCG_COND_NE, tmp4, a0, label_BB1_23);
-	tcg_gen_mov_tl(a0, a3);
-	
-	gen_set_label(label_BB1_23);
-	tcg_gen_or_tl(tmp4, a5, a0);
-	tcg_gen_shli_tl(tmp4, tmp4, 8);
-	tcg_gen_or_tl(tmp4, tmp4, tmp6);
-	
-	gen_set_label(label_BB1_24);
-	tcg_gen_shli_tl(tmp5, tmp2, 2);
-	/*Assign W to tmp6.*/
-	/*Assign W[tmp5] to tmp5.*/
-
-	/*ARRAY ACCESS*/
-	STORE_ARRAY(ctx, W, 16, tmp5, 0, tmp4, 0);
-	/*End ARRAY ACCESS*/
-
-	tcg_gen_setcondi_tl(TCG_COND_EQ, tmp4, tmp2, 15);
-	tcg_gen_brcond_tl(TCG_COND_NE, tmp4, tmp3, label_BB1_26);
-	tcg_gen_addi_tl(tmp3, tmp2, 1);
-	
-	gen_set_label(label_BB1_26);
-	tcg_gen_mov_tl(pidx, tmp3);
-	tcg_gen_andi_tl(r0, tmp4, 1);
-	tcg_gen_brcondi_tl(TCG_COND_ALWAYS, ctx->zero, 0, end_label);
+	tcg_gen_brcondi_tl(TCG_COND_ALWAYS, ctx->zero, 0, label_BB1_6);
 	
 	gen_set_label(label_BB1_5);
-	tcg_gen_movi_tl(a3, 1);
-	tcg_gen_andi_tl(a3, tmp4, 1);
-	tcg_gen_or_tl(a7, a1, a3);
-	tcg_gen_or_tl(a0, tmp6, a0);
-	tcg_gen_setcondi_tl(TCG_COND_EQ, r0, a0, 0);
-	tcg_gen_movi_tl(a0, 3);
-	tcg_gen_movi_tl(a3, 0);
-	tcg_gen_brcond_tl(TCG_COND_NE, r0, a3, label_BB1_7);
-	tcg_gen_mov_tl(a0, a3);
+	tcg_gen_mov_tl(a0, sp[2]);
+	convBigEndianWithStringTerminationPadding(ctx, r0, a0);
+	tcg_gen_mov_tl(sp[1], r0);
+	tcg_gen_brcondi_tl(TCG_COND_ALWAYS, ctx->zero, 0, label_BB1_6);
+	
+	gen_set_label(label_BB1_6);
+	tcg_gen_mov_tl(tmp1, sp[1]);
+	/*Assign pidx to tmp2.*/
+	tcg_gen_mov_tl(tmp2, pidx);
+	tcg_gen_shli_tl(tmp2, tmp2, 2);
+	/*Assign W to tmp3.*/
+	/*Assign W[tmp2] to tmp2.*/
+
+	/*ARRAY ACCESS*/
+	STORE_ARRAY(ctx, W, 16, tmp2, 0, tmp1, 0);
+	/*End ARRAY ACCESS*/
+
+	tcg_gen_mov_tl(tmp1, sp[0]);
+	tcg_gen_brcondi_tl(TCG_COND_EQ, tmp1, 0, label_BB1_8);
+	tcg_gen_brcondi_tl(TCG_COND_ALWAYS, ctx->zero, 0, label_BB1_7);
 	
 	gen_set_label(label_BB1_7);
-	tcg_gen_setcondi_tl(TCG_COND_EQ, r0, a7, 0);
-	tcg_gen_movi_tl(a7, 2);
-	tcg_gen_brcond_tl(TCG_COND_NE, r0, a3, label_BB1_9);
-	tcg_gen_mov_tl(a7, a3);
+	tcg_gen_movi_tl(tmp1, 0);
+	tcg_gen_brcondi_tl(TCG_COND_ALWAYS, ctx->zero, 0, label_BB1_9);
+	
+	gen_set_label(label_BB1_8);
+	/*Assign pidx to tmp1.*/
+	tcg_gen_mov_tl(tmp1, pidx);
+	tcg_gen_addi_tl(tmp1, tmp1, 1);
+	tcg_gen_brcondi_tl(TCG_COND_ALWAYS, ctx->zero, 0, label_BB1_9);
 	
 	gen_set_label(label_BB1_9);
-	tcg_gen_andi_tl(a3, a4, 1);
-	tcg_gen_or_tl(a3, a5, a3);
-	tcg_gen_setcondi_tl(TCG_COND_EQ, a3, a3, 0);
-	tcg_gen_andi_tl(a3, a3, 1);
-	tcg_gen_or_tl(a3, a7, a3);
-	tcg_gen_add_tl(r0, a0, a3);
-	/*Assign inBytes to a0.*/
-	tcg_gen_mov_tl(a7, inBytes);
-	tcg_gen_brcondi_tl(TCG_COND_ALWAYS, ctx->zero, 0, label_BB1_11);
+	/*Assign pidx to tmp2.*/
+	tcg_gen_mov_tl(pidx, tmp1);
+	tcg_gen_mov_tl(r0, sp[0]);
+	tcg_gen_brcondi_tl(TCG_COND_ALWAYS, ctx->zero, 0, end_label);
 
 	gen_set_label(end_label);
 }
@@ -462,7 +377,13 @@ static void computeHashCore(DisasContext *ctx, TCGv r0) {
 	TCGLabel *label_BB2_1 = gen_new_label();
 	TCGLabel *label_BB2_2 = gen_new_label();
 	TCGLabel *label_BB2_3 = gen_new_label();
+	TCGLabel *label_BB2_4 = gen_new_label();
 	TCGLabel *label_BB2_5 = gen_new_label();
+	TCGLabel *label_BB2_6 = gen_new_label();
+	TCGLabel *label_BB2_7 = gen_new_label();
+	TCGLabel *label_BB2_8 = gen_new_label();
+	TCGLabel *label_BB2_9 = gen_new_label();
+	TCGLabel *label_BB2_10 = gen_new_label();
 	TCGLabel *end_label = gen_new_label();
 
 	TCGv tmp1 = tcg_temp_new();
@@ -477,137 +398,207 @@ static void computeHashCore(DisasContext *ctx, TCGv r0) {
 	tcg_gen_movi_tl(tmp4, 0);
 	tcg_gen_movi_tl(tmp5, 0);
 	tcg_gen_movi_tl(tmp6, 0);
-	TCGv a0 = tcg_temp_new();
-	TCGv a1 = tcg_temp_new();
-	TCGv a2 = tcg_temp_new();
-	tcg_gen_movi_tl(a0, 0);
-	tcg_gen_movi_tl(a1, 0);
-	tcg_gen_movi_tl(a2, 0);
 	TCGv index = tcg_temp_new();
 	tcg_gen_movi_tl(index, 0);
 
-	/*Assign hidx to tmp3.*/
-	tcg_gen_mov_tl(tmp4, hidx);
-	tcg_gen_shli_tl(tmp2, tmp4, 2);
-	tcg_gen_brcondi_tl(TCG_COND_GTU, tmp4, 15, label_BB2_2);
+	TCGv sp[6]; for(int i = 0; i < 6; ++i) { sp[i] = tcg_temp_new(); }
+
+	/*Assign hidx to tmp1.*/
+	tcg_gen_mov_tl(tmp2, hidx);
+	tcg_gen_mov_tl(sp[4], tmp2);
+	tcg_gen_mov_tl(tmp1, hidx);
+	tcg_gen_brcondi_tl(TCG_COND_GTU, tmp1, 15, label_BB2_2);
 	tcg_gen_brcondi_tl(TCG_COND_ALWAYS, ctx->zero, 0, label_BB2_1);
 	
 	gen_set_label(label_BB2_1);
-	/*Assign W to tmp1.*/
-	/*Assign W[tmp2] to tmp1.*/
+	tcg_gen_mov_tl(tmp1, sp[4]);
+	tcg_gen_shli_tl(tmp1, tmp1, 2);
+	/*Assign W to tmp2.*/
+	/*Assign W[tmp1] to tmp1.*/
 
 	/*ARRAY ACCESS*/
-	LOAD_ARRAY(ctx, tmp5, W, 16, tmp2, 0, 1);
+	LOAD_ARRAY(ctx, tmp1, W, 16, tmp1, 0, 1);
 	/*End ARRAY ACCESS*/
 
-	tcg_gen_brcondi_tl(TCG_COND_ALWAYS, ctx->zero, 0, label_BB2_3);
+	tcg_gen_mov_tl(sp[5], tmp1);
+	tcg_gen_brcondi_tl(TCG_COND_ALWAYS, ctx->zero, 0, label_BB2_7);
 	
 	gen_set_label(label_BB2_2);
 	/*Assign W to tmp1.*/
-	/*Assign W[tmp2] to tmp1.*/
-
-	/*ARRAY ACCESS*/
-	LOAD_ARRAY(ctx, tmp5, W, 16, tmp2, -7, 2);
-	/*End ARRAY ACCESS*/
-
-
-	/*ARRAY ACCESS*/
-	LOAD_ARRAY(ctx, tmp6, W, 16, tmp2, -16, 3);
-	/*End ARRAY ACCESS*/
-
-	tcg_gen_add_tl(tmp5, tmp6, tmp5);
-
-	/*ARRAY ACCESS*/
-	LOAD_ARRAY(ctx, tmp6, W, 16, tmp2, -2, 4);
-	/*End ARRAY ACCESS*/
-
-	tcg_gen_shri_tl(a0, tmp6, 10);
-	tcg_gen_rotli_tl(a1, tmp6, 13);
-	tcg_gen_xor_tl(a0, a1, a0);
-	tcg_gen_rotli_tl(tmp6, tmp6, 15);
-	tcg_gen_xor_tl(tmp6, a0, tmp6);
-	tcg_gen_add_tl(tmp5, tmp5, tmp6);
-
-	/*ARRAY ACCESS*/
-	LOAD_ARRAY(ctx, tmp6, W, 16, tmp2, -15, 5);
-	/*End ARRAY ACCESS*/
-
-	tcg_gen_shri_tl(a0, tmp6, 3);
-	tcg_gen_rotli_tl(a1, tmp6, 14);
-	tcg_gen_xor_tl(a0, a1, a0);
-	tcg_gen_rotli_tl(tmp6, tmp6, 25);
-	tcg_gen_xor_tl(tmp6, a0, tmp6);
-	tcg_gen_add_tl(tmp5, tmp5, tmp6);
-
-	/*ARRAY ACCESS*/
-	STORE_ARRAY(ctx, W, 16, tmp2, 0, tmp5, 6);
-	/*End ARRAY ACCESS*/
-
+	tcg_gen_mov_tl(tmp2, W[14]);
+	tcg_gen_shri_tl(tmp3, tmp2, 17);
+	tcg_gen_shli_tl(tmp4, tmp2, 15);
+	tcg_gen_or_tl(tmp3, tmp3, tmp4);
+	tcg_gen_shri_tl(tmp4, tmp2, 19);
+	tcg_gen_shli_tl(tmp5, tmp2, 13);
+	tcg_gen_or_tl(tmp4, tmp4, tmp5);
+	tcg_gen_xor_tl(tmp3, tmp3, tmp4);
+	tcg_gen_shri_tl(tmp2, tmp2, 10);
+	tcg_gen_xor_tl(tmp2, tmp3, tmp2);
+	tcg_gen_mov_tl(tmp3, W[9]);
+	tcg_gen_add_tl(tmp2, tmp2, tmp3);
+	tcg_gen_mov_tl(tmp3, W[1]);
+	tcg_gen_shri_tl(tmp4, tmp3, 7);
+	tcg_gen_shli_tl(tmp5, tmp3, 25);
+	tcg_gen_or_tl(tmp4, tmp4, tmp5);
+	tcg_gen_shri_tl(tmp5, tmp3, 18);
+	tcg_gen_shli_tl(tmp6, tmp3, 14);
+	tcg_gen_or_tl(tmp5, tmp5, tmp6);
+	tcg_gen_xor_tl(tmp4, tmp4, tmp5);
+	tcg_gen_shri_tl(tmp3, tmp3, 3);
+	tcg_gen_xor_tl(tmp3, tmp4, tmp3);
+	tcg_gen_add_tl(tmp2, tmp2, tmp3);
+	tcg_gen_mov_tl(tmp1, W[0]);
+	tcg_gen_add_tl(tmp1, tmp2, tmp1);
+	tcg_gen_mov_tl(sp[5], tmp1);
+	tcg_gen_movi_tl(tmp1, 0);
+	tcg_gen_mov_tl(sp[3], tmp1);
+	tcg_gen_brcondi_tl(TCG_COND_ALWAYS, ctx->zero, 0, label_BB2_3);
 	
 	gen_set_label(label_BB2_3);
-	tcg_gen_setcondi_tl(TCG_COND_EQ, tmp1, tmp4, 63);
-	tcg_gen_movi_tl(tmp6, 0);
-	tcg_gen_brcond_tl(TCG_COND_NE, tmp1, tmp6, label_BB2_5);
-	tcg_gen_addi_tl(tmp6, tmp4, 1);
+	tcg_gen_mov_tl(tmp1, sp[3]);
+	tcg_gen_brcondi_tl(TCG_COND_GT, tmp1, 14, label_BB2_6);
+	tcg_gen_brcondi_tl(TCG_COND_ALWAYS, ctx->zero, 0, label_BB2_4);
 	
-	gen_set_label(label_BB2_5);
-	tcg_gen_mov_tl(hidx, tmp6);
-	/*Assign m to tmp3.*/
-	tcg_gen_mov_tl(tmp4, m[7]);
-	tcg_gen_add_tl(tmp4, tmp4, tmp5);
-	/*Assign const K to tmp5.*/
-	/*Assign const K[tmp2] to tmp2.*/
-	tcg_gen_mov_tl(tmp5, m[6]);
-	tcg_gen_mov_tl(tmp6, m[4]);
-	tcg_gen_xori_tl(a0, tmp6, -1);
-	tcg_gen_and_tl(a0, tmp5, a0);
-	tcg_gen_mov_tl(a1, m[5]);
-	tcg_gen_and_tl(a2, a1, tmp6);
-	tcg_gen_or_tl(a0, a0, a2);
+	gen_set_label(label_BB2_4);
+	tcg_gen_mov_tl(tmp1, sp[3]);
+	tcg_gen_shli_tl(tmp1, tmp1, 2);
+	/*Assign W to tmp2.*/
+	/*Assign W[tmp1] to tmp1.*/
 
 	/*ARRAY ACCESS*/
-	LOAD_ARRAY_CONST(ctx, tmp2, K, 64, tmp2, 0, 7);
+	LOAD_ARRAY(ctx, tmp2, W, 16, tmp1, 1, 2);
 	/*End ARRAY ACCESS*/
 
-	tcg_gen_add_tl(tmp2, tmp4, tmp2);
-	tcg_gen_rotli_tl(tmp4, tmp6, 21);
-	tcg_gen_rotli_tl(a2, tmp6, 26);
-	tcg_gen_xor_tl(tmp4, a2, tmp4);
-	tcg_gen_rotli_tl(a2, tmp6, 7);
-	tcg_gen_xor_tl(tmp4, tmp4, a2);
+
+	/*ARRAY ACCESS*/
+	STORE_ARRAY(ctx, W, 16, tmp1, 0, tmp2, 3);
+	/*End ARRAY ACCESS*/
+
+	tcg_gen_brcondi_tl(TCG_COND_ALWAYS, ctx->zero, 0, label_BB2_5);
+	
+	gen_set_label(label_BB2_5);
+	tcg_gen_mov_tl(tmp1, sp[3]);
+	tcg_gen_addi_tl(tmp1, tmp1, 1);
+	tcg_gen_mov_tl(sp[3], tmp1);
+	tcg_gen_brcondi_tl(TCG_COND_ALWAYS, ctx->zero, 0, label_BB2_3);
+	
+	gen_set_label(label_BB2_6);
+	tcg_gen_mov_tl(tmp1, sp[5]);
+	/*Assign W to tmp2.*/
+	tcg_gen_mov_tl(W[15], tmp1);
+	tcg_gen_brcondi_tl(TCG_COND_ALWAYS, ctx->zero, 0, label_BB2_7);
+	
+	gen_set_label(label_BB2_7);
+	/*Assign m to tmp1.*/
+	tcg_gen_mov_tl(tmp2, m[7]);
+	tcg_gen_mov_tl(tmp3, m[4]);
+	tcg_gen_shri_tl(tmp4, tmp3, 6);
+	tcg_gen_shli_tl(tmp5, tmp3, 26);
+	tcg_gen_or_tl(tmp4, tmp4, tmp5);
+	tcg_gen_shri_tl(tmp5, tmp3, 11);
+	tcg_gen_shli_tl(tmp6, tmp3, 21);
+	tcg_gen_or_tl(tmp5, tmp5, tmp6);
+	tcg_gen_xor_tl(tmp4, tmp4, tmp5);
+	tcg_gen_shri_tl(tmp5, tmp3, 25);
+	tcg_gen_shli_tl(tmp6, tmp3, 7);
+	tcg_gen_or_tl(tmp5, tmp5, tmp6);
+	tcg_gen_xor_tl(tmp4, tmp4, tmp5);
 	tcg_gen_add_tl(tmp2, tmp2, tmp4);
-	tcg_gen_add_tl(tmp2, tmp2, a0);
-	tcg_gen_mov_tl(tmp4, m[0]);
-	tcg_gen_rotli_tl(a0, tmp4, 19);
-	tcg_gen_rotli_tl(a2, tmp4, 30);
-	tcg_gen_xor_tl(a0, a2, a0);
-	tcg_gen_rotli_tl(a2, tmp4, 10);
-	tcg_gen_xor_tl(a0, a0, a2);
-	tcg_gen_mov_tl(m[7], tmp5);
-	tcg_gen_mov_tl(m[6], a1);
-	tcg_gen_mov_tl(m[5], tmp6);
-	tcg_gen_mov_tl(tmp5, m[3]);
-	tcg_gen_add_tl(tmp5, tmp5, tmp2);
-	tcg_gen_mov_tl(m[4], tmp5);
-	tcg_gen_add_tl(tmp2, tmp2, a0);
-	tcg_gen_mov_tl(tmp5, m[2]);
-	tcg_gen_mov_tl(m[3], tmp5);
-	tcg_gen_mov_tl(tmp6, m[1]);
-	tcg_gen_mov_tl(m[2], tmp6);
-	tcg_gen_and_tl(a0, tmp5, tmp6);
-	tcg_gen_xor_tl(tmp5, tmp5, tmp6);
-	tcg_gen_mov_tl(m[1], tmp4);
-	tcg_gen_and_tl(tmp4, tmp5, tmp4);
-	tcg_gen_xor_tl(tmp4, tmp4, a0);
-	tcg_gen_add_tl(tmp2, tmp2, tmp4);
+	tcg_gen_mov_tl(tmp4, m[5]);
+	tcg_gen_and_tl(tmp4, tmp3, tmp4);
+	tcg_gen_xori_tl(tmp3, tmp3, -1);
+	tcg_gen_mov_tl(tmp5, m[6]);
+	tcg_gen_and_tl(tmp3, tmp3, tmp5);
+	tcg_gen_xor_tl(tmp3, tmp4, tmp3);
+	tcg_gen_add_tl(tmp2, tmp2, tmp3);
+	tcg_gen_mov_tl(tmp3, sp[4]);
+	tcg_gen_shli_tl(tmp3, tmp3, 2);
+	/*Assign const K to tmp4.*/
+	/*Assign const K[tmp3] to tmp3.*/
+
+	/*ARRAY ACCESS*/
+	LOAD_ARRAY_CONST(ctx, tmp3, K, 64, tmp3, 0, 4);
+	/*End ARRAY ACCESS*/
+
+	tcg_gen_add_tl(tmp2, tmp2, tmp3);
+	tcg_gen_mov_tl(tmp3, sp[5]);
+	tcg_gen_add_tl(tmp2, tmp2, tmp3);
+	tcg_gen_mov_tl(sp[2], tmp2);
+	tcg_gen_mov_tl(tmp2, m[0]);
+	tcg_gen_shri_tl(tmp3, tmp2, 2);
+	tcg_gen_shli_tl(tmp4, tmp2, 30);
+	tcg_gen_or_tl(tmp3, tmp3, tmp4);
+	tcg_gen_shri_tl(tmp4, tmp2, 13);
+	tcg_gen_shli_tl(tmp5, tmp2, 19);
+	tcg_gen_or_tl(tmp4, tmp4, tmp5);
+	tcg_gen_xor_tl(tmp3, tmp3, tmp4);
+	tcg_gen_shri_tl(tmp4, tmp2, 22);
+	tcg_gen_shli_tl(tmp5, tmp2, 10);
+	tcg_gen_or_tl(tmp4, tmp4, tmp5);
+	tcg_gen_xor_tl(tmp3, tmp3, tmp4);
+	tcg_gen_mov_tl(tmp4, m[1]);
+	tcg_gen_and_tl(tmp5, tmp2, tmp4);
+	tcg_gen_mov_tl(tmp6, m[2]);
+	tcg_gen_and_tl(tmp2, tmp2, tmp6);
+	tcg_gen_xor_tl(tmp2, tmp5, tmp2);
+	tcg_gen_and_tl(tmp4, tmp4, tmp6);
+	tcg_gen_xor_tl(tmp2, tmp2, tmp4);
+	tcg_gen_add_tl(tmp2, tmp3, tmp2);
+	tcg_gen_mov_tl(sp[1], tmp2);
+	tcg_gen_mov_tl(tmp2, m[6]);
+	tcg_gen_mov_tl(m[7], tmp2);
+	tcg_gen_mov_tl(tmp2, m[5]);
+	tcg_gen_mov_tl(m[6], tmp2);
+	tcg_gen_mov_tl(tmp2, m[4]);
+	tcg_gen_mov_tl(m[5], tmp2);
+	tcg_gen_mov_tl(tmp2, m[3]);
+	tcg_gen_mov_tl(tmp3, sp[2]);
+	tcg_gen_add_tl(tmp2, tmp2, tmp3);
+	tcg_gen_mov_tl(m[4], tmp2);
+	tcg_gen_mov_tl(tmp2, m[2]);
+	tcg_gen_mov_tl(m[3], tmp2);
+	tcg_gen_mov_tl(tmp2, m[1]);
+	tcg_gen_mov_tl(m[2], tmp2);
+	tcg_gen_mov_tl(tmp2, m[0]);
+	tcg_gen_mov_tl(m[1], tmp2);
+	tcg_gen_mov_tl(tmp2, sp[2]);
+	tcg_gen_mov_tl(tmp3, sp[1]);
+	tcg_gen_add_tl(tmp2, tmp2, tmp3);
 	tcg_gen_mov_tl(m[0], tmp2);
-	tcg_gen_andi_tl(r0, tmp1, 1);
+	/*Assign hidx to tmp1.*/
+	tcg_gen_mov_tl(tmp1, hidx);
+	tcg_gen_setcondi_tl(TCG_COND_EQ, tmp1, tmp1, 63);
+	tcg_gen_andi_tl(tmp1, tmp1, 1);
+	tcg_gen_mov_tl(sp[0], tmp1);
+	tcg_gen_mov_tl(tmp1, sp[0]);
+	tcg_gen_brcondi_tl(TCG_COND_EQ, tmp1, 0, label_BB2_9);
+	tcg_gen_brcondi_tl(TCG_COND_ALWAYS, ctx->zero, 0, label_BB2_8);
+	
+	gen_set_label(label_BB2_8);
+	tcg_gen_movi_tl(tmp1, 0);
+	tcg_gen_brcondi_tl(TCG_COND_ALWAYS, ctx->zero, 0, label_BB2_10);
+	
+	gen_set_label(label_BB2_9);
+	/*Assign hidx to tmp1.*/
+	tcg_gen_mov_tl(tmp1, hidx);
+	tcg_gen_addi_tl(tmp1, tmp1, 1);
+	tcg_gen_brcondi_tl(TCG_COND_ALWAYS, ctx->zero, 0, label_BB2_10);
+	
+	gen_set_label(label_BB2_10);
+	/*Assign hidx to tmp2.*/
+	tcg_gen_mov_tl(hidx, tmp1);
+	tcg_gen_mov_tl(r0, sp[0]);
 	tcg_gen_brcondi_tl(TCG_COND_ALWAYS, ctx->zero, 0, end_label);
 
 	gen_set_label(end_label);
 }
 
 static void reset(DisasContext *ctx, TCGv r0) {
+	TCGLabel *label_BB3_1 = gen_new_label();
+	TCGLabel *label_BB3_2 = gen_new_label();
+	TCGLabel *label_BB3_3 = gen_new_label();
+	TCGLabel *label_BB3_4 = gen_new_label();
 	TCGLabel *end_label = gen_new_label();
 
 	TCGv tmp1 = tcg_temp_new();
@@ -616,79 +607,124 @@ static void reset(DisasContext *ctx, TCGv r0) {
 	tcg_gen_movi_tl(tmp1, 0);
 	tcg_gen_movi_tl(tmp2, 0);
 	tcg_gen_movi_tl(tmp3, 0);
+	TCGv index = tcg_temp_new();
+	tcg_gen_movi_tl(index, 0);
 
-	/*Assign padState to tmp1.*/
-	tcg_gen_movi_tl(tmp2, 0);
-	tcg_gen_mov_tl(padState, tmp2);
+	TCGv sp[1]; for(int i = 0; i < 1; ++i) { sp[i] = tcg_temp_new(); }
+
 	/*Assign pidx to tmp1.*/
+	tcg_gen_movi_tl(tmp2, 0);
 	tcg_gen_mov_tl(pidx, tmp2);
+	/*Assign padState to tmp1.*/
+	tcg_gen_mov_tl(padState, tmp2);
 	/*Assign state to tmp1.*/
 	tcg_gen_mov_tl(state, tmp2);
 	/*Assign tmpWord to tmp1.*/
 	tcg_gen_mov_tl(tmpWord, tmp2);
-	/*Assign const H0 to tmp1.*/
-	tcg_gen_movi_tl(tmp2, H0[0]);
+	/*Assign inBytes to tmp1.*/
+	tcg_gen_mov_tl(inBytes, tmp2);
+	/*Assign hidx to tmp1.*/
+	tcg_gen_mov_tl(hidx, tmp2);
+	tcg_gen_mov_tl(sp[0], tmp2);
+	tcg_gen_brcondi_tl(TCG_COND_ALWAYS, ctx->zero, 0, label_BB3_1);
+	
+	gen_set_label(label_BB3_1);
+	tcg_gen_mov_tl(tmp1, sp[0]);
+	tcg_gen_brcondi_tl(TCG_COND_GT, tmp1, 7, label_BB3_4);
+	tcg_gen_brcondi_tl(TCG_COND_ALWAYS, ctx->zero, 0, label_BB3_2);
+	
+	gen_set_label(label_BB3_2);
+	tcg_gen_mov_tl(tmp1, sp[0]);
+	tcg_gen_shli_tl(tmp1, tmp1, 2);
+	/*Assign const H0 to tmp2.*/
+	/*Assign const H0[tmp1] to tmp2.*/
+
+	/*ARRAY ACCESS*/
+	LOAD_ARRAY_CONST(ctx, tmp2, H0, 8, tmp1, 0, 5);
+	/*End ARRAY ACCESS*/
+
 	/*Assign H to tmp3.*/
-	tcg_gen_mov_tl(H[0], tmp2);
-	tcg_gen_movi_tl(tmp2, H0[1]);
-	tcg_gen_mov_tl(H[1], tmp2);
-	tcg_gen_movi_tl(tmp2, H0[2]);
-	tcg_gen_mov_tl(H[2], tmp2);
-	tcg_gen_movi_tl(tmp2, H0[3]);
-	tcg_gen_mov_tl(H[3], tmp2);
-	tcg_gen_movi_tl(tmp2, H0[4]);
-	tcg_gen_mov_tl(H[4], tmp2);
-	tcg_gen_movi_tl(tmp2, H0[5]);
-	tcg_gen_mov_tl(H[5], tmp2);
-	tcg_gen_movi_tl(tmp2, H0[6]);
-	tcg_gen_mov_tl(H[6], tmp2);
-	tcg_gen_movi_tl(tmp1, H0[7]);
-	tcg_gen_mov_tl(H[7], tmp1);
+	/*Assign H[tmp1] to tmp1.*/
+
+	/*ARRAY ACCESS*/
+	STORE_ARRAY(ctx, H, 8, tmp1, 0, tmp2, 6);
+	/*End ARRAY ACCESS*/
+
+	tcg_gen_brcondi_tl(TCG_COND_ALWAYS, ctx->zero, 0, label_BB3_3);
+	
+	gen_set_label(label_BB3_3);
+	tcg_gen_mov_tl(tmp1, sp[0]);
+	tcg_gen_addi_tl(tmp1, tmp1, 1);
+	tcg_gen_mov_tl(sp[0], tmp1);
+	tcg_gen_brcondi_tl(TCG_COND_ALWAYS, ctx->zero, 0, label_BB3_1);
+	
+	gen_set_label(label_BB3_4);
 	tcg_gen_brcondi_tl(TCG_COND_ALWAYS, ctx->zero, 0, end_label);
 
 	gen_set_label(end_label);
 }
 
 static void setAddr(DisasContext *ctx, TCGv r0, TCGv a0, TCGv a1) {
+	TCGLabel *label_BB4_1 = gen_new_label();
 	TCGLabel *label_BB4_2 = gen_new_label();
+	TCGLabel *label_BB4_3 = gen_new_label();
 	TCGLabel *label_BB4_4 = gen_new_label();
+	TCGLabel *label_BB4_5 = gen_new_label();
 	TCGLabel *end_label = gen_new_label();
 
 	TCGv tmp1 = tcg_temp_new();
 	TCGv tmp2 = tcg_temp_new();
 	TCGv tmp3 = tcg_temp_new();
-	TCGv tmp4 = tcg_temp_new();
 	tcg_gen_movi_tl(tmp1, 0);
 	tcg_gen_movi_tl(tmp2, 0);
 	tcg_gen_movi_tl(tmp3, 0);
-	tcg_gen_movi_tl(tmp4, 0);
 
-	tcg_gen_setcondi_tl(TCG_COND_EQ, tmp4, a1, 1);
-	tcg_gen_movi_tl(tmp1, 8);
-	tcg_gen_movi_tl(tmp3, 16);
+	TCGv sp[2]; for(int i = 0; i < 2; ++i) { sp[i] = tcg_temp_new(); }
+
+	tcg_gen_mov_tl(sp[1], a0);
+	tcg_gen_mov_tl(sp[0], a1);
+	tcg_gen_mov_tl(tmp1, sp[1]);
+	/*Assign memAddr to tmp2.*/
+	tcg_gen_mov_tl(memAddr, tmp1);
+	tcg_gen_mov_tl(tmp1, sp[1]);
+	tcg_gen_andi_tl(tmp1, tmp1, 3);
+	/*Assign bytePos to tmp2.*/
+	tcg_gen_mov_tl(bytePos, tmp1);
+	/*Assign pidx to tmp1.*/
 	tcg_gen_movi_tl(tmp2, 0);
-	tcg_gen_brcond_tl(TCG_COND_NE, tmp4, tmp2, label_BB4_2);
-	tcg_gen_mov_tl(tmp3, tmp1);
+	tcg_gen_mov_tl(pidx, tmp2);
+	tcg_gen_mov_tl(tmp1, sp[0]);
+	/*Assign dataID to tmp3.*/
+	tcg_gen_mov_tl(dataID, tmp1);
+	/*Assign state to tmp1.*/
+	tcg_gen_mov_tl(state, tmp2);
+	tcg_gen_mov_tl(tmp1, sp[0]);
+	tcg_gen_brcondi_tl(TCG_COND_EQ, tmp1, 0, label_BB4_2);
+	tcg_gen_brcondi_tl(TCG_COND_ALWAYS, ctx->zero, 0, label_BB4_1);
+	
+	gen_set_label(label_BB4_1);
+	tcg_gen_brcondi_tl(TCG_COND_EQ, tmp1, 1, label_BB4_3);
+	tcg_gen_brcondi_tl(TCG_COND_ALWAYS, ctx->zero, 0, label_BB4_4);
 	
 	gen_set_label(label_BB4_2);
-	/*Assign dataID to tmp4.*/
-	tcg_gen_mov_tl(dataID, a1);
-	tcg_gen_setcondi_tl(TCG_COND_EQ, tmp4, a1, 0);
-	tcg_gen_brcond_tl(TCG_COND_NE, tmp4, tmp2, label_BB4_4);
-	tcg_gen_mov_tl(tmp1, tmp3);
+	/*Assign numWords to tmp1.*/
+	tcg_gen_movi_tl(tmp2, 8);
+	tcg_gen_mov_tl(numWords, tmp2);
+	tcg_gen_brcondi_tl(TCG_COND_ALWAYS, ctx->zero, 0, label_BB4_5);
+	
+	gen_set_label(label_BB4_3);
+	/*Assign numWords to tmp1.*/
+	tcg_gen_movi_tl(tmp2, 16);
+	tcg_gen_mov_tl(numWords, tmp2);
+	tcg_gen_brcondi_tl(TCG_COND_ALWAYS, ctx->zero, 0, label_BB4_5);
 	
 	gen_set_label(label_BB4_4);
-	/*Assign pidx to tmp3.*/
-	tcg_gen_mov_tl(pidx, tmp2);
-	/*Assign state to tmp3.*/
-	tcg_gen_mov_tl(state, tmp2);
-	/*Assign memAddr to tmp2.*/
-	tcg_gen_mov_tl(memAddr, a0);
-	tcg_gen_andi_tl(tmp2, a0, 3);
-	/*Assign bytePos to tmp3.*/
-	tcg_gen_mov_tl(bytePos, tmp2);
-	/*Assign numWords to tmp2.*/
-	tcg_gen_mov_tl(numWords, tmp1);
+	/*Assign numWords to tmp1.*/
+	tcg_gen_movi_tl(tmp2, 8);
+	tcg_gen_mov_tl(numWords, tmp2);
+	tcg_gen_brcondi_tl(TCG_COND_ALWAYS, ctx->zero, 0, label_BB4_5);
+	
+	gen_set_label(label_BB4_5);
 	tcg_gen_brcondi_tl(TCG_COND_ALWAYS, ctx->zero, 0, end_label);
 
 	gen_set_label(end_label);
@@ -702,12 +738,18 @@ static void loadData(DisasContext *ctx, TCGv r0, TCGv a0) {
 	TCGLabel *label_BB5_5 = gen_new_label();
 	TCGLabel *label_BB5_6 = gen_new_label();
 	TCGLabel *label_BB5_7 = gen_new_label();
+	TCGLabel *label_BB5_8 = gen_new_label();
 	TCGLabel *label_BB5_9 = gen_new_label();
 	TCGLabel *label_BB5_10 = gen_new_label();
-	TCGLabel *label_BB5_8 = gen_new_label();
 	TCGLabel *label_BB5_11 = gen_new_label();
+	TCGLabel *label_BB5_12 = gen_new_label();
 	TCGLabel *label_BB5_13 = gen_new_label();
 	TCGLabel *label_BB5_14 = gen_new_label();
+	TCGLabel *label_BB5_15 = gen_new_label();
+	TCGLabel *label_BB5_16 = gen_new_label();
+	TCGLabel *label_BB5_17 = gen_new_label();
+	TCGLabel *label_BB5_19 = gen_new_label();
+	TCGLabel *label_BB5_20 = gen_new_label();
 	TCGLabel *end_label = gen_new_label();
 
 	TCGv tmp1 = tcg_temp_new();
@@ -715,137 +757,184 @@ static void loadData(DisasContext *ctx, TCGv r0, TCGv a0) {
 	TCGv tmp3 = tcg_temp_new();
 	TCGv tmp4 = tcg_temp_new();
 	TCGv tmp5 = tcg_temp_new();
-	TCGv tmp6 = tcg_temp_new();
 	tcg_gen_movi_tl(tmp1, 0);
 	tcg_gen_movi_tl(tmp2, 0);
 	tcg_gen_movi_tl(tmp3, 0);
 	tcg_gen_movi_tl(tmp4, 0);
 	tcg_gen_movi_tl(tmp5, 0);
-	tcg_gen_movi_tl(tmp6, 0);
-	TCGv a1 = tcg_temp_new();
-	tcg_gen_movi_tl(a1, 0);
 	TCGv index = tcg_temp_new();
 	tcg_gen_movi_tl(index, 0);
 
-	TCGv sp[4]; for(int i = 0; i < 4; ++i) { sp[i] = tcg_temp_new(); }
+	TCGv sp[8]; for(int i = 0; i < 8; ++i) { sp[i] = tcg_temp_new(); }
 
-	tcg_gen_mov_tl(tmp1, a0);
-	/*Assign state to tmp6.*/
-	tcg_gen_mov_tl(tmp2, state);
-	/*Assign numBytes to a1.*/
-	tcg_gen_brcondi_tl(TCG_COND_EQ, tmp2, 0, label_BB5_11);
+	tcg_gen_mov_tl(sp[6], a0);
+	tcg_gen_movi_tl(tmp1, 0);
+	tcg_gen_mov_tl(sp[5], tmp1);
+	/*Assign state to tmp1.*/
+	tcg_gen_mov_tl(tmp1, state);
+	tcg_gen_brcondi_tl(TCG_COND_EQ, tmp1, 0, label_BB5_15);
 	tcg_gen_brcondi_tl(TCG_COND_ALWAYS, ctx->zero, 0, label_BB5_1);
 	
 	gen_set_label(label_BB5_1);
-	tcg_gen_mov_tl(tmp2, numBytes);
-	tcg_gen_brcondi_tl(TCG_COND_NE, tmp2, 1, label_BB5_3);
+	/*Assign numBytes to tmp1.*/
+	tcg_gen_mov_tl(tmp1, numBytes);
+	tcg_gen_brcondi_tl(TCG_COND_NE, tmp1, 1, label_BB5_3);
 	tcg_gen_brcondi_tl(TCG_COND_ALWAYS, ctx->zero, 0, label_BB5_2);
 	
 	gen_set_label(label_BB5_2);
-	tcg_gen_shli_tl(tmp1, tmp1, 24);
-	/*Assign tmpWord to tmp2.*/
-	tcg_gen_mov_tl(tmp3, tmpWord);
-	tcg_gen_shri_tl(tmp3, tmp3, 8);
-	tcg_gen_or_tl(tmp1, tmp3, tmp1);
-	tcg_gen_mov_tl(tmpWord, tmp1);
-	tcg_gen_brcondi_tl(TCG_COND_ALWAYS, ctx->zero, 0, label_BB5_11);
+	/*Assign tmpWord to tmp1.*/
+	tcg_gen_mov_tl(tmp2, tmpWord);
+	tcg_gen_shri_tl(tmp2, tmp2, 8);
+	tcg_gen_mov_tl(tmp3, sp[6]);
+	tcg_gen_shli_tl(tmp3, tmp3, 24);
+	tcg_gen_or_tl(tmp2, tmp2, tmp3);
+	tcg_gen_mov_tl(tmpWord, tmp2);
+	tcg_gen_brcondi_tl(TCG_COND_ALWAYS, ctx->zero, 0, label_BB5_14);
 	
 	gen_set_label(label_BB5_3);
-	/*Assign bytePos to tmp2.*/
-	tcg_gen_mov_tl(tmp3, bytePos);
-	/*Assign tmpWord to tmp2.*/
-	tcg_gen_mov_tl(a0, tmp1);
-	tcg_gen_brcondi_tl(TCG_COND_EQ, tmp3, 0, label_BB5_5);
+	/*Assign bytePos to tmp1.*/
+	tcg_gen_mov_tl(tmp2, bytePos);
+	tcg_gen_shli_tl(tmp2, tmp2, 3);
+	tcg_gen_mov_tl(sp[4], tmp2);
+	tcg_gen_mov_tl(tmp2, bytePos);
+	tcg_gen_movi_tl(tmp3, 4);
+	tcg_gen_sub_tl(tmp2, tmp3, tmp2);
+	tcg_gen_shli_tl(tmp2, tmp2, 3);
+	tcg_gen_mov_tl(sp[3], tmp2);
+	tcg_gen_mov_tl(tmp1, bytePos);
+	tcg_gen_brcondi_tl(TCG_COND_NE, tmp1, 0, label_BB5_5);
 	tcg_gen_brcondi_tl(TCG_COND_ALWAYS, ctx->zero, 0, label_BB5_4);
 	
 	gen_set_label(label_BB5_4);
-	tcg_gen_shli_tl(tmp3, tmp3, 3);
-	tcg_gen_mov_tl(tmp4, tmpWord);
-	tcg_gen_shr_tl(tmp4, tmp4, tmp3);
-	tcg_gen_movi_tl(tmp5, 32);
-	tcg_gen_sub_tl(tmp3, tmp5, tmp3);
-	tcg_gen_shl_tl(tmp3, tmp1, tmp3);
-	tcg_gen_or_tl(a0, tmp4, tmp3);
+	tcg_gen_mov_tl(tmp1, sp[6]);
+	tcg_gen_brcondi_tl(TCG_COND_ALWAYS, ctx->zero, 0, label_BB5_6);
 	
 	gen_set_label(label_BB5_5);
-	tcg_gen_mov_tl(tmpWord, tmp1);
-	/*Assign dataID to tmp1.*/
-	tcg_gen_mov_tl(tmp1, dataID);
-	tcg_gen_brcondi_tl(TCG_COND_EQ, tmp1, 1, label_BB5_9);
+	/*Assign tmpWord to tmp1.*/
+	tcg_gen_mov_tl(tmp1, tmpWord);
+	tcg_gen_mov_tl(tmp2, sp[4]);
+	tcg_gen_shr_tl(tmp1, tmp1, tmp2);
+	tcg_gen_mov_tl(tmp2, sp[6]);
+	tcg_gen_mov_tl(tmp3, sp[3]);
+	tcg_gen_shl_tl(tmp2, tmp2, tmp3);
+	tcg_gen_or_tl(tmp1, tmp1, tmp2);
 	tcg_gen_brcondi_tl(TCG_COND_ALWAYS, ctx->zero, 0, label_BB5_6);
 	
 	gen_set_label(label_BB5_6);
-	tcg_gen_brcondi_tl(TCG_COND_NE, tmp1, 0, label_BB5_8);
+	tcg_gen_mov_tl(sp[2], tmp1);
+	tcg_gen_mov_tl(tmp1, sp[6]);
+	/*Assign tmpWord to tmp2.*/
+	tcg_gen_mov_tl(tmpWord, tmp1);
+	/*Assign dataID to tmp1.*/
+	tcg_gen_mov_tl(tmp1, dataID);
+	tcg_gen_brcondi_tl(TCG_COND_EQ, tmp1, 0, label_BB5_8);
 	tcg_gen_brcondi_tl(TCG_COND_ALWAYS, ctx->zero, 0, label_BB5_7);
 	
 	gen_set_label(label_BB5_7);
-	/*Assign pidx to tmp1.*/
-	tcg_gen_mov_tl(tmp2, pidx);
-	tcg_gen_addi_tl(tmp3, tmp2, 1);
-	tcg_gen_mov_tl(pidx, tmp3);
-	tcg_gen_shli_tl(tmp1, tmp2, 2);
-	/*Assign H to tmp2.*/
-	/*Assign H[tmp1] to tmp1.*/
+	tcg_gen_brcondi_tl(TCG_COND_EQ, tmp1, 1, label_BB5_9);
+	tcg_gen_brcondi_tl(TCG_COND_ALWAYS, ctx->zero, 0, label_BB5_12);
+	
+	gen_set_label(label_BB5_8);
+	tcg_gen_mov_tl(tmp1, sp[2]);
+	/*Assign pidx to tmp2.*/
+	tcg_gen_mov_tl(tmp3, pidx);
+	tcg_gen_addi_tl(tmp4, tmp3, 1);
+	tcg_gen_mov_tl(pidx, tmp4);
+	tcg_gen_shli_tl(tmp2, tmp3, 2);
+	/*Assign H to tmp3.*/
+	/*Assign H[tmp2] to tmp2.*/
 
 	/*ARRAY ACCESS*/
-	STORE_ARRAY(ctx, H, 8, tmp1, 0, a0, 8);
+	STORE_ARRAY(ctx, H, 8, tmp2, 0, tmp1, 7);
 	/*End ARRAY ACCESS*/
 
-	tcg_gen_brcondi_tl(TCG_COND_ALWAYS, ctx->zero, 0, label_BB5_11);
+	tcg_gen_brcondi_tl(TCG_COND_ALWAYS, ctx->zero, 0, label_BB5_13);
 	
 	gen_set_label(label_BB5_9);
-	tcg_gen_mov_tl(sp[2], tmp6);
-	tcg_gen_mov_tl(sp[1], a1);
+	tcg_gen_mov_tl(a0, sp[2]);
 	createPaddedInput(ctx, r0, a0);
-	tcg_gen_mov_tl(a1, sp[1]);
-	tcg_gen_mov_tl(tmp6, sp[2]);
 	tcg_gen_brcondi_tl(TCG_COND_EQ, r0, 0, label_BB5_11);
 	tcg_gen_brcondi_tl(TCG_COND_ALWAYS, ctx->zero, 0, label_BB5_10);
 	
 	gen_set_label(label_BB5_10);
-	/*Assign dataOut to tmp1.*/
-	tcg_gen_movi_tl(r0, 1);
-	tcg_gen_mov_tl(dataOut, r0);
-	tcg_gen_brcondi_tl(TCG_COND_ALWAYS, ctx->zero, 0, label_BB5_14);
-	
-	gen_set_label(label_BB5_8);
-	/*Assign pidx to tmp1.*/
-	tcg_gen_mov_tl(tmp2, pidx);
-	tcg_gen_addi_tl(tmp3, tmp2, 1);
-	tcg_gen_mov_tl(pidx, tmp3);
-	tcg_gen_shli_tl(tmp1, tmp2, 2);
-	/*Assign m to tmp2.*/
-	/*Assign m[tmp1] to tmp1.*/
-
-	/*ARRAY ACCESS*/
-	STORE_ARRAY(ctx, m, 8, tmp1, 0, a0, 9);
-	/*End ARRAY ACCESS*/
-
+	tcg_gen_movi_tl(tmp1, 1);
+	tcg_gen_mov_tl(sp[5], tmp1);
 	tcg_gen_brcondi_tl(TCG_COND_ALWAYS, ctx->zero, 0, label_BB5_11);
 	
 	gen_set_label(label_BB5_11);
+	tcg_gen_brcondi_tl(TCG_COND_ALWAYS, ctx->zero, 0, label_BB5_13);
+	
+	gen_set_label(label_BB5_12);
+	tcg_gen_mov_tl(tmp1, sp[2]);
+	/*Assign pidx to tmp2.*/
+	tcg_gen_mov_tl(tmp3, pidx);
+	tcg_gen_addi_tl(tmp4, tmp3, 1);
+	tcg_gen_mov_tl(pidx, tmp4);
+	tcg_gen_shli_tl(tmp2, tmp3, 2);
+	/*Assign m to tmp3.*/
+	/*Assign m[tmp2] to tmp2.*/
+
+	/*ARRAY ACCESS*/
+	STORE_ARRAY(ctx, m, 8, tmp2, 0, tmp1, 8);
+	/*End ARRAY ACCESS*/
+
+	tcg_gen_brcondi_tl(TCG_COND_ALWAYS, ctx->zero, 0, label_BB5_13);
+	
+	gen_set_label(label_BB5_13);
+	tcg_gen_brcondi_tl(TCG_COND_ALWAYS, ctx->zero, 0, label_BB5_14);
+	
+	gen_set_label(label_BB5_14);
+	tcg_gen_brcondi_tl(TCG_COND_ALWAYS, ctx->zero, 0, label_BB5_15);
+	
+	gen_set_label(label_BB5_15);
+	tcg_gen_mov_tl(tmp1, sp[5]);
+	tcg_gen_andi_tl(tmp1, tmp1, 1);
+	tcg_gen_brcondi_tl(TCG_COND_EQ, tmp1, 0, label_BB5_17);
+	tcg_gen_brcondi_tl(TCG_COND_ALWAYS, ctx->zero, 0, label_BB5_16);
+	
+	gen_set_label(label_BB5_16);
+	/*Assign dataOut to tmp1.*/
+	tcg_gen_movi_tl(tmp2, 1);
+	tcg_gen_mov_tl(dataOut, tmp2);
+	tcg_gen_brcondi_tl(TCG_COND_ALWAYS, ctx->zero, 0, label_BB5_20);
+	
+	gen_set_label(label_BB5_17);
+	/*Assign memAddr to tmp1.*/
+	tcg_gen_mov_tl(tmp2, memAddr);
+	/*Assign memAddrOut to tmp3.*/
+	tcg_gen_mov_tl(memAddrOut, tmp2);
+	tcg_gen_mov_tl(tmp2, memAddr);
+	tcg_gen_andi_tl(tmp2, tmp2, 3);
+	tcg_gen_setcondi_tl(TCG_COND_NE, tmp4, tmp2, 0);
+	tcg_gen_movi_tl(tmp3, 4);
+	tcg_gen_movi_tl(tmp2, 1);
+	tcg_gen_movi_tl(tmp5, 0);
+	tcg_gen_brcond_tl(TCG_COND_NE, tmp4, tmp5, label_BB5_19);
+	tcg_gen_mov_tl(tmp2, tmp3);
+	
+	gen_set_label(label_BB5_19);
+	/*Assign numBytesOut to tmp3.*/
+	tcg_gen_mov_tl(numBytesOut, tmp2);
+	tcg_gen_mov_tl(tmp2, numBytesOut);
+	tcg_gen_mov_tl(tmp4, memAddr);
+	tcg_gen_add_tl(tmp2, tmp4, tmp2);
+	tcg_gen_mov_tl(memAddr, tmp2);
 	/*Assign opOut to tmp1.*/
 	tcg_gen_movi_tl(tmp2, 6);
 	tcg_gen_mov_tl(opOut, tmp2);
-	/*Assign memAddr to tmp1.*/
-	tcg_gen_mov_tl(tmp2, memAddr);
-	tcg_gen_andi_tl(tmp3, tmp2, 3);
-	tcg_gen_setcondi_tl(TCG_COND_EQ, tmp4, tmp3, 0);
-	tcg_gen_movi_tl(tmp3, 4);
-	tcg_gen_movi_tl(r0, 0);
-	tcg_gen_brcond_tl(TCG_COND_NE, tmp4, r0, label_BB5_13);
-	tcg_gen_movi_tl(tmp3, 1);
+	tcg_gen_mov_tl(tmp1, numBytesOut);
+	/*Assign numBytes to tmp2.*/
+	tcg_gen_mov_tl(numBytes, tmp1);
+	tcg_gen_brcondi_tl(TCG_COND_ALWAYS, ctx->zero, 0, label_BB5_20);
 	
-	gen_set_label(label_BB5_13);
-	/*Assign memAddrOut to tmp4.*/
-	tcg_gen_mov_tl(memAddrOut, tmp2);
-	/*Assign numBytesOut to tmp4.*/
-	tcg_gen_mov_tl(numBytesOut, tmp3);
-	tcg_gen_add_tl(tmp2, tmp3, tmp2);
-	tcg_gen_mov_tl(memAddr, tmp2);
-	
-	gen_set_label(label_BB5_14);
-	tcg_gen_xori_tl(tmp1, r0, 1);
+	gen_set_label(label_BB5_20);
+	tcg_gen_mov_tl(tmp1, sp[5]);
+	tcg_gen_xori_tl(tmp1, tmp1, -1);
+	tcg_gen_andi_tl(tmp1, tmp1, 1);
+	/*Assign state to tmp2.*/
+	tcg_gen_mov_tl(state, tmp1);
+	tcg_gen_mov_tl(tmp1, sp[5]);
+	tcg_gen_andi_tl(r0, tmp1, 1);
 	tcg_gen_brcondi_tl(TCG_COND_ALWAYS, ctx->zero, 0, end_label);
 
 	gen_set_label(end_label);
@@ -861,14 +950,21 @@ static void storeData(DisasContext *ctx, TCGv r0) {
 	TCGLabel *label_BB6_7 = gen_new_label();
 	TCGLabel *label_BB6_9 = gen_new_label();
 	TCGLabel *label_BB6_10 = gen_new_label();
+	TCGLabel *label_BB6_11 = gen_new_label();
 	TCGLabel *label_BB6_12 = gen_new_label();
 	TCGLabel *label_BB6_13 = gen_new_label();
 	TCGLabel *label_BB6_14 = gen_new_label();
+	TCGLabel *label_BB6_15 = gen_new_label();
 	TCGLabel *label_BB6_16 = gen_new_label();
+	TCGLabel *label_BB6_17 = gen_new_label();
 	TCGLabel *label_BB6_18 = gen_new_label();
+	TCGLabel *label_BB6_19 = gen_new_label();
 	TCGLabel *label_BB6_20 = gen_new_label();
 	TCGLabel *label_BB6_21 = gen_new_label();
 	TCGLabel *label_BB6_22 = gen_new_label();
+	TCGLabel *label_BB6_23 = gen_new_label();
+	TCGLabel *label_BB6_25 = gen_new_label();
+	TCGLabel *label_BB6_26 = gen_new_label();
 	TCGLabel *end_label = gen_new_label();
 
 	TCGv tmp1 = tcg_temp_new();
@@ -876,160 +972,233 @@ static void storeData(DisasContext *ctx, TCGv r0) {
 	TCGv tmp3 = tcg_temp_new();
 	TCGv tmp4 = tcg_temp_new();
 	TCGv tmp5 = tcg_temp_new();
-	TCGv tmp6 = tcg_temp_new();
 	tcg_gen_movi_tl(tmp1, 0);
 	tcg_gen_movi_tl(tmp2, 0);
 	tcg_gen_movi_tl(tmp3, 0);
 	tcg_gen_movi_tl(tmp4, 0);
 	tcg_gen_movi_tl(tmp5, 0);
-	tcg_gen_movi_tl(tmp6, 0);
-	TCGv a0 = tcg_temp_new();
-	TCGv a1 = tcg_temp_new();
-	TCGv a2 = tcg_temp_new();
-	tcg_gen_movi_tl(a0, 0);
-	tcg_gen_movi_tl(a1, 0);
-	tcg_gen_movi_tl(a2, 0);
 	TCGv index = tcg_temp_new();
 	tcg_gen_movi_tl(index, 0);
 
+	TCGv sp[6]; for(int i = 0; i < 6; ++i) { sp[i] = tcg_temp_new(); }
+
 	/*Assign state to tmp1.*/
-	tcg_gen_mov_tl(tmp3, state);
-	tcg_gen_brcondi_tl(TCG_COND_NE, tmp3, 2, label_BB6_2);
+	tcg_gen_mov_tl(tmp1, state);
+	tcg_gen_brcondi_tl(TCG_COND_NE, tmp1, 2, label_BB6_2);
 	tcg_gen_brcondi_tl(TCG_COND_ALWAYS, ctx->zero, 0, label_BB6_1);
 	
 	gen_set_label(label_BB6_1);
-	tcg_gen_movi_tl(tmp2, 0);
-	tcg_gen_mov_tl(state, tmp2);
 	/*Assign dataOut to tmp1.*/
-	tcg_gen_movi_tl(r0, 1);
-	tcg_gen_mov_tl(dataOut, r0);
-	tcg_gen_brcondi_tl(TCG_COND_ALWAYS, ctx->zero, 0, label_BB6_22);
+	tcg_gen_movi_tl(tmp2, 1);
+	tcg_gen_mov_tl(dataOut, tmp2);
+	/*Assign state to tmp1.*/
+	tcg_gen_movi_tl(tmp3, 0);
+	tcg_gen_mov_tl(state, tmp3);
+	tcg_gen_mov_tl(sp[5], tmp2);
+	tcg_gen_brcondi_tl(TCG_COND_ALWAYS, ctx->zero, 0, label_BB6_26);
 	
 	gen_set_label(label_BB6_2);
-	/*Assign dataID to tmp2.*/
-	tcg_gen_mov_tl(tmp2, dataID);
-	tcg_gen_brcondi_tl(TCG_COND_EQ, tmp2, 1, label_BB6_5);
+	tcg_gen_movi_tl(tmp1, 0);
+	tcg_gen_mov_tl(sp[4], tmp1);
+	/*Assign dataID to tmp1.*/
+	tcg_gen_mov_tl(tmp1, dataID);
+	tcg_gen_brcondi_tl(TCG_COND_EQ, tmp1, 0, label_BB6_4);
 	tcg_gen_brcondi_tl(TCG_COND_ALWAYS, ctx->zero, 0, label_BB6_3);
 	
 	gen_set_label(label_BB6_3);
-	tcg_gen_brcondi_tl(TCG_COND_NE, tmp2, 0, label_BB6_6);
-	tcg_gen_brcondi_tl(TCG_COND_ALWAYS, ctx->zero, 0, label_BB6_4);
+	tcg_gen_brcondi_tl(TCG_COND_EQ, tmp1, 1, label_BB6_5);
+	tcg_gen_brcondi_tl(TCG_COND_ALWAYS, ctx->zero, 0, label_BB6_6);
 	
 	gen_set_label(label_BB6_4);
-	/*Assign pidx to tmp2.*/
-	tcg_gen_mov_tl(tmp2, pidx);
-	tcg_gen_shli_tl(tmp4, tmp2, 2);
-	/*Assign H to tmp5.*/
-	/*Assign H[tmp4] to tmp4.*/
+	/*Assign pidx to tmp1.*/
+	tcg_gen_mov_tl(tmp1, pidx);
+	tcg_gen_shli_tl(tmp1, tmp1, 2);
+	/*Assign H to tmp2.*/
+	/*Assign H[tmp1] to tmp1.*/
+
+	/*ARRAY ACCESS*/
+	LOAD_ARRAY(ctx, tmp1, H, 8, tmp1, 0, 9);
+	/*End ARRAY ACCESS*/
+
+	tcg_gen_mov_tl(sp[3], tmp1);
 	tcg_gen_brcondi_tl(TCG_COND_ALWAYS, ctx->zero, 0, label_BB6_7);
 	
 	gen_set_label(label_BB6_5);
-	/*Assign pidx to tmp2.*/
-	tcg_gen_mov_tl(tmp2, pidx);
-	tcg_gen_shli_tl(tmp4, tmp2, 2);
-	/*Assign W to tmp5.*/
-	/*Assign W[tmp4] to tmp4.*/
+	/*Assign pidx to tmp1.*/
+	tcg_gen_mov_tl(tmp1, pidx);
+	tcg_gen_shli_tl(tmp1, tmp1, 2);
+	/*Assign W to tmp2.*/
+	/*Assign W[tmp1] to tmp1.*/
+
+	/*ARRAY ACCESS*/
+	LOAD_ARRAY(ctx, tmp1, W, 16, tmp1, 0, 10);
+	/*End ARRAY ACCESS*/
+
+	tcg_gen_mov_tl(sp[3], tmp1);
 	tcg_gen_brcondi_tl(TCG_COND_ALWAYS, ctx->zero, 0, label_BB6_7);
 	
 	gen_set_label(label_BB6_6);
-	/*Assign pidx to tmp2.*/
-	tcg_gen_mov_tl(tmp2, pidx);
-	tcg_gen_shli_tl(tmp4, tmp2, 2);
-	/*Assign m to tmp5.*/
-	/*Assign m[tmp4] to tmp4.*/
-	
-	gen_set_label(label_BB6_7);
-	/*Assign memAddr to tmp6.*/
-	tcg_gen_mov_tl(a0, memAddr);
-	tcg_gen_andi_tl(tmp5, a0, 3);
-	tcg_gen_setcondi_tl(TCG_COND_EQ, a2, tmp5, 0);
-	tcg_gen_movi_tl(a1, 4);
-	tcg_gen_movi_tl(r0, 0);
-	tcg_gen_brcond_tl(TCG_COND_NE, a2, r0, label_BB6_9);
-	tcg_gen_movi_tl(a1, 1);
-	
-	gen_set_label(label_BB6_9);
+	/*Assign pidx to tmp1.*/
+	tcg_gen_mov_tl(tmp1, pidx);
+	tcg_gen_shli_tl(tmp1, tmp1, 2);
+	/*Assign m to tmp2.*/
+	/*Assign m[tmp1] to tmp1.*/
 
 	/*ARRAY ACCESS*/
-	LOAD_ARRAY(ctx, tmp4, m, 8, tmp4, 0, 10);
+	LOAD_ARRAY(ctx, tmp1, m, 8, tmp1, 0, 11);
 	/*End ARRAY ACCESS*/
 
-	/*Assign memAddrOut to a2.*/
-	tcg_gen_mov_tl(memAddrOut, a0);
-	/*Assign numBytesOut to a2.*/
-	tcg_gen_mov_tl(numBytesOut, a1);
-	/*Assign numBytes to a2.*/
-	tcg_gen_mov_tl(numBytes, a1);
-	tcg_gen_add_tl(a0, a1, a0);
-	tcg_gen_mov_tl(memAddr, a0);
-	tcg_gen_brcondi_tl(TCG_COND_EQ, tmp5, 0, label_BB6_14);
+	tcg_gen_mov_tl(sp[3], tmp1);
+	tcg_gen_brcondi_tl(TCG_COND_ALWAYS, ctx->zero, 0, label_BB6_7);
+	
+	gen_set_label(label_BB6_7);
+	/*Assign memAddr to tmp1.*/
+	tcg_gen_mov_tl(tmp2, memAddr);
+	tcg_gen_andi_tl(tmp2, tmp2, 3);
+	tcg_gen_setcondi_tl(TCG_COND_NE, tmp4, tmp2, 0);
+	tcg_gen_movi_tl(tmp3, 4);
+	tcg_gen_movi_tl(tmp2, 1);
+	tcg_gen_movi_tl(tmp5, 0);
+	tcg_gen_brcond_tl(TCG_COND_NE, tmp4, tmp5, label_BB6_9);
+	tcg_gen_mov_tl(tmp2, tmp3);
+	
+	gen_set_label(label_BB6_9);
+	/*Assign numBytesOut to tmp3.*/
+	tcg_gen_mov_tl(numBytesOut, tmp2);
+	tcg_gen_mov_tl(tmp2, memAddr);
+	/*Assign memAddrOut to tmp4.*/
+	tcg_gen_mov_tl(memAddrOut, tmp2);
+	tcg_gen_mov_tl(tmp2, numBytesOut);
+	tcg_gen_mov_tl(tmp4, memAddr);
+	tcg_gen_add_tl(tmp2, tmp4, tmp2);
+	tcg_gen_mov_tl(memAddr, tmp2);
+	tcg_gen_mov_tl(tmp1, numBytesOut);
+	/*Assign numBytes to tmp2.*/
+	tcg_gen_mov_tl(numBytes, tmp1);
+	tcg_gen_mov_tl(tmp1, numBytesOut);
+	tcg_gen_brcondi_tl(TCG_COND_NE, tmp1, 1, label_BB6_16);
 	tcg_gen_brcondi_tl(TCG_COND_ALWAYS, ctx->zero, 0, label_BB6_10);
 	
 	gen_set_label(label_BB6_10);
-	tcg_gen_setcondi_tl(TCG_COND_EQ, tmp6, tmp3, 0);
-	/*Assign tmpWord to tmp3.*/
-	tcg_gen_brcond_tl(TCG_COND_NE, tmp6, r0, label_BB6_12);
-	tcg_gen_mov_tl(tmp4, tmpWord);
+	/*Assign state to tmp1.*/
+	tcg_gen_mov_tl(tmp1, state);
+	tcg_gen_brcondi_tl(TCG_COND_NE, tmp1, 0, label_BB6_12);
+	tcg_gen_brcondi_tl(TCG_COND_ALWAYS, ctx->zero, 0, label_BB6_11);
+	
+	gen_set_label(label_BB6_11);
+	tcg_gen_mov_tl(tmp1, sp[3]);
+	tcg_gen_brcondi_tl(TCG_COND_ALWAYS, ctx->zero, 0, label_BB6_13);
 	
 	gen_set_label(label_BB6_12);
-	tcg_gen_andi_tl(tmp6, tmp4, 255);
-	/*Assign dataOut to a0.*/
-	tcg_gen_mov_tl(dataOut, tmp6);
-	tcg_gen_shri_tl(tmp4, tmp4, 8);
-	tcg_gen_mov_tl(tmpWord, tmp4);
-	tcg_gen_movi_tl(tmp3, 1);
-	tcg_gen_brcondi_tl(TCG_COND_NE, tmp5, 3, label_BB6_21);
+	/*Assign tmpWord to tmp1.*/
+	tcg_gen_mov_tl(tmp1, tmpWord);
 	tcg_gen_brcondi_tl(TCG_COND_ALWAYS, ctx->zero, 0, label_BB6_13);
 	
 	gen_set_label(label_BB6_13);
-	tcg_gen_addi_tl(tmp2, tmp2, 1);
-	/*Assign pidx to tmp4.*/
-	tcg_gen_mov_tl(pidx, tmp2);
-	tcg_gen_brcondi_tl(TCG_COND_ALWAYS, ctx->zero, 0, label_BB6_21);
+	tcg_gen_mov_tl(sp[2], tmp1);
+	tcg_gen_mov_tl(tmp1, sp[2]);
+	/*Assign dataOut to tmp2.*/
+	tcg_gen_mov_tl(dataOut, tmp1);
+	tcg_gen_mov_tl(tmp1, sp[2]);
+	tcg_gen_shri_tl(tmp1, tmp1, 8);
+	/*Assign tmpWord to tmp2.*/
+	tcg_gen_mov_tl(tmpWord, tmp1);
+	/*Assign memAddrOut to tmp1.*/
+	tcg_gen_mov_tl(tmp1, memAddrOut);
+	tcg_gen_andi_tl(tmp1, tmp1, 3);
+	tcg_gen_brcondi_tl(TCG_COND_NE, tmp1, 3, label_BB6_15);
+	tcg_gen_brcondi_tl(TCG_COND_ALWAYS, ctx->zero, 0, label_BB6_14);
 	
 	gen_set_label(label_BB6_14);
-	/*Assign bytePos to tmp3.*/
-	tcg_gen_mov_tl(tmp5, bytePos);
-	tcg_gen_shli_tl(tmp3, tmp5, 3);
-	tcg_gen_shr_tl(a0, tmp4, tmp3);
-	/*Assign tmpWord to a1.*/
-	tcg_gen_mov_tl(tmp6, tmpWord);
-	tcg_gen_mov_tl(tmpWord, a0);
-	tcg_gen_setcondi_tl(TCG_COND_EQ, a0, tmp5, 0);
-	tcg_gen_movi_tl(tmp5, 0);
-	tcg_gen_brcond_tl(TCG_COND_NE, a0, tmp5, label_BB6_16);
-	tcg_gen_movi_tl(a0, 32);
-	tcg_gen_sub_tl(tmp3, a0, tmp3);
-	tcg_gen_shl_tl(tmp3, tmp4, tmp3);
-	tcg_gen_or_tl(tmp4, tmp3, tmp6);
+	/*Assign pidx to tmp1.*/
+	tcg_gen_mov_tl(tmp2, pidx);
+	tcg_gen_addi_tl(tmp2, tmp2, 1);
+	tcg_gen_mov_tl(pidx, tmp2);
+	tcg_gen_brcondi_tl(TCG_COND_ALWAYS, ctx->zero, 0, label_BB6_15);
+	
+	gen_set_label(label_BB6_15);
+	tcg_gen_brcondi_tl(TCG_COND_ALWAYS, ctx->zero, 0, label_BB6_23);
 	
 	gen_set_label(label_BB6_16);
-	/*Assign numWords to tmp3.*/
-	tcg_gen_mov_tl(tmp3, numWords);
-	tcg_gen_addi_tl(tmp3, tmp3, -1);
-	tcg_gen_setcond_tl(TCG_COND_LTU, tmp6, tmp2, tmp3);
-	tcg_gen_movi_tl(tmp3, 1);
-	tcg_gen_brcond_tl(TCG_COND_NE, tmp6, tmp5, label_BB6_18);
-	tcg_gen_movi_tl(tmp3, 2);
+	/*Assign bytePos to tmp1.*/
+	tcg_gen_mov_tl(tmp2, bytePos);
+	tcg_gen_shli_tl(tmp2, tmp2, 3);
+	tcg_gen_mov_tl(sp[1], tmp2);
+	tcg_gen_mov_tl(tmp2, bytePos);
+	tcg_gen_movi_tl(tmp3, 4);
+	tcg_gen_sub_tl(tmp2, tmp3, tmp2);
+	tcg_gen_shli_tl(tmp2, tmp2, 3);
+	tcg_gen_mov_tl(sp[0], tmp2);
+	tcg_gen_mov_tl(tmp1, bytePos);
+	tcg_gen_brcondi_tl(TCG_COND_NE, tmp1, 0, label_BB6_18);
+	tcg_gen_brcondi_tl(TCG_COND_ALWAYS, ctx->zero, 0, label_BB6_17);
+	
+	gen_set_label(label_BB6_17);
+	tcg_gen_mov_tl(tmp1, sp[3]);
+	tcg_gen_brcondi_tl(TCG_COND_ALWAYS, ctx->zero, 0, label_BB6_19);
 	
 	gen_set_label(label_BB6_18);
-	tcg_gen_addi_tl(tmp2, tmp2, 1);
-	tcg_gen_brcond_tl(TCG_COND_NE, tmp6, tmp5, label_BB6_20);
-	tcg_gen_mov_tl(tmp2, tmp5);
+	/*Assign tmpWord to tmp1.*/
+	tcg_gen_mov_tl(tmp1, tmpWord);
+	tcg_gen_mov_tl(tmp2, sp[3]);
+	tcg_gen_mov_tl(tmp3, sp[0]);
+	tcg_gen_shl_tl(tmp2, tmp2, tmp3);
+	tcg_gen_or_tl(tmp1, tmp1, tmp2);
+	tcg_gen_brcondi_tl(TCG_COND_ALWAYS, ctx->zero, 0, label_BB6_19);
+	
+	gen_set_label(label_BB6_19);
+	/*Assign dataOut to tmp2.*/
+	tcg_gen_mov_tl(dataOut, tmp1);
+	tcg_gen_mov_tl(tmp1, sp[3]);
+	tcg_gen_mov_tl(tmp2, sp[1]);
+	tcg_gen_shr_tl(tmp1, tmp1, tmp2);
+	/*Assign tmpWord to tmp2.*/
+	tcg_gen_mov_tl(tmpWord, tmp1);
+	/*Assign pidx to tmp1.*/
+	tcg_gen_mov_tl(tmp1, pidx);
+	/*Assign numWords to tmp2.*/
+	tcg_gen_mov_tl(tmp2, numWords);
+	tcg_gen_addi_tl(tmp2, tmp2, -1);
+	tcg_gen_brcond_tl(TCG_COND_LTU, tmp1, tmp2, label_BB6_21);
+	tcg_gen_brcondi_tl(TCG_COND_ALWAYS, ctx->zero, 0, label_BB6_20);
 	
 	gen_set_label(label_BB6_20);
-	/*Assign pidx to tmp5.*/
+	/*Assign pidx to tmp1.*/
+	tcg_gen_movi_tl(tmp2, 0);
 	tcg_gen_mov_tl(pidx, tmp2);
-	/*Assign dataOut to tmp2.*/
-	tcg_gen_mov_tl(dataOut, tmp4);
+	tcg_gen_movi_tl(tmp1, 1);
+	tcg_gen_mov_tl(sp[4], tmp1);
+	tcg_gen_brcondi_tl(TCG_COND_ALWAYS, ctx->zero, 0, label_BB6_22);
 	
 	gen_set_label(label_BB6_21);
-	/*Assign opOut to tmp2.*/
-	tcg_gen_movi_tl(tmp4, 7);
-	tcg_gen_mov_tl(opOut, tmp4);
-	tcg_gen_mov_tl(dataOut, tmp3);
+	/*Assign pidx to tmp1.*/
+	tcg_gen_mov_tl(tmp2, pidx);
+	tcg_gen_addi_tl(tmp2, tmp2, 1);
+	tcg_gen_mov_tl(pidx, tmp2);
+	tcg_gen_brcondi_tl(TCG_COND_ALWAYS, ctx->zero, 0, label_BB6_22);
 	
 	gen_set_label(label_BB6_22);
+	tcg_gen_brcondi_tl(TCG_COND_ALWAYS, ctx->zero, 0, label_BB6_23);
+	
+	gen_set_label(label_BB6_23);
+	tcg_gen_mov_tl(tmp4, sp[4]);
+	tcg_gen_movi_tl(tmp3, 1);
+	tcg_gen_movi_tl(tmp2, 2);
+	tcg_gen_movi_tl(tmp1, 0);
+	tcg_gen_brcond_tl(TCG_COND_NE, tmp4, tmp1, label_BB6_25);
+	tcg_gen_mov_tl(tmp2, tmp3);
+	
+	gen_set_label(label_BB6_25);
+	/*Assign state to tmp3.*/
+	tcg_gen_mov_tl(state, tmp2);
+	/*Assign opOut to tmp2.*/
+	tcg_gen_movi_tl(tmp3, 7);
+	tcg_gen_mov_tl(opOut, tmp3);
+	tcg_gen_mov_tl(sp[5], tmp1);
+	tcg_gen_brcondi_tl(TCG_COND_ALWAYS, ctx->zero, 0, label_BB6_26);
+	
+	gen_set_label(label_BB6_26);
+	tcg_gen_mov_tl(r0, sp[5]);
 	tcg_gen_brcondi_tl(TCG_COND_ALWAYS, ctx->zero, 0, end_label);
 
 	gen_set_label(end_label);
@@ -1043,126 +1212,158 @@ static void computeHash(DisasContext *ctx, TCGv r0) {
 	TCGLabel *label_BB7_5 = gen_new_label();
 	TCGLabel *label_BB7_6 = gen_new_label();
 	TCGLabel *label_BB7_7 = gen_new_label();
+	TCGLabel *label_BB7_8 = gen_new_label();
+	TCGLabel *label_BB7_9 = gen_new_label();
+	TCGLabel *label_BB7_10 = gen_new_label();
+	TCGLabel *label_BB7_11 = gen_new_label();
+	TCGLabel *label_BB7_12 = gen_new_label();
+	TCGLabel *label_BB7_13 = gen_new_label();
+	TCGLabel *label_BB7_14 = gen_new_label();
+	TCGLabel *label_BB7_15 = gen_new_label();
+	TCGLabel *label_BB7_16 = gen_new_label();
 	TCGLabel *end_label = gen_new_label();
 
 	TCGv tmp1 = tcg_temp_new();
 	TCGv tmp2 = tcg_temp_new();
 	TCGv tmp3 = tcg_temp_new();
-	TCGv tmp4 = tcg_temp_new();
-	TCGv tmp5 = tcg_temp_new();
-	TCGv tmp6 = tcg_temp_new();
 	tcg_gen_movi_tl(tmp1, 0);
 	tcg_gen_movi_tl(tmp2, 0);
 	tcg_gen_movi_tl(tmp3, 0);
-	tcg_gen_movi_tl(tmp4, 0);
-	tcg_gen_movi_tl(tmp5, 0);
-	tcg_gen_movi_tl(tmp6, 0);
-	TCGv a0 = tcg_temp_new();
-	TCGv a1 = tcg_temp_new();
-	tcg_gen_movi_tl(a0, 0);
-	tcg_gen_movi_tl(a1, 0);
+	TCGv index = tcg_temp_new();
+	tcg_gen_movi_tl(index, 0);
 
 	TCGv sp[4]; for(int i = 0; i < 4; ++i) { sp[i] = tcg_temp_new(); }
 
-	/*Assign state to a1.*/
+	tcg_gen_movi_tl(tmp1, 0);
+	tcg_gen_mov_tl(sp[2], tmp1);
+	/*Assign state to tmp1.*/
 	tcg_gen_mov_tl(tmp1, state);
-	tcg_gen_brcondi_tl(TCG_COND_EQ, tmp1, 0, label_BB7_4);
+	tcg_gen_brcondi_tl(TCG_COND_EQ, tmp1, 0, label_BB7_3);
 	tcg_gen_brcondi_tl(TCG_COND_ALWAYS, ctx->zero, 0, label_BB7_1);
 	
 	gen_set_label(label_BB7_1);
-	tcg_gen_movi_tl(tmp3, 0);
-	tcg_gen_brcondi_tl(TCG_COND_EQ, tmp1, 1, label_BB7_5);
+	tcg_gen_brcondi_tl(TCG_COND_EQ, tmp1, 1, label_BB7_8);
 	tcg_gen_brcondi_tl(TCG_COND_ALWAYS, ctx->zero, 0, label_BB7_2);
 	
 	gen_set_label(label_BB7_2);
-	tcg_gen_brcondi_tl(TCG_COND_NE, tmp1, 2, label_BB7_7);
-	tcg_gen_brcondi_tl(TCG_COND_ALWAYS, ctx->zero, 0, label_BB7_3);
+	tcg_gen_brcondi_tl(TCG_COND_EQ, tmp1, 2, label_BB7_11);
+	tcg_gen_brcondi_tl(TCG_COND_ALWAYS, ctx->zero, 0, label_BB7_16);
 	
 	gen_set_label(label_BB7_3);
-	/*Assign m to tmp1.*/
-	tcg_gen_mov_tl(tmp2, m[3]);
-	/*Assign H to tmp3.*/
-	tcg_gen_mov_tl(tmp4, H[3]);
-	tcg_gen_add_tl(tmp2, tmp4, tmp2);
-	tcg_gen_mov_tl(tmp4, m[2]);
-	tcg_gen_mov_tl(tmp5, H[2]);
-	tcg_gen_add_tl(tmp4, tmp5, tmp4);
-	tcg_gen_mov_tl(tmp5, m[1]);
-	tcg_gen_mov_tl(tmp6, H[1]);
-	tcg_gen_add_tl(tmp5, tmp6, tmp5);
-	tcg_gen_mov_tl(tmp6, m[0]);
-	tcg_gen_mov_tl(a0, H[0]);
-	tcg_gen_add_tl(tmp6, a0, tmp6);
-	tcg_gen_mov_tl(H[0], tmp6);
-	tcg_gen_mov_tl(H[1], tmp5);
-	tcg_gen_mov_tl(H[2], tmp4);
-	tcg_gen_mov_tl(H[3], tmp2);
-	tcg_gen_mov_tl(tmp2, m[4]);
-	tcg_gen_mov_tl(tmp4, H[4]);
-	tcg_gen_add_tl(tmp2, tmp4, tmp2);
-	tcg_gen_mov_tl(H[4], tmp2);
-	tcg_gen_mov_tl(tmp2, m[5]);
-	tcg_gen_mov_tl(tmp4, H[5]);
-	tcg_gen_add_tl(tmp2, tmp4, tmp2);
-	tcg_gen_mov_tl(H[5], tmp2);
-	tcg_gen_mov_tl(tmp2, m[6]);
-	tcg_gen_mov_tl(tmp4, H[6]);
-	tcg_gen_add_tl(tmp2, tmp4, tmp2);
-	tcg_gen_mov_tl(H[6], tmp2);
-	tcg_gen_mov_tl(tmp1, m[7]);
-	tcg_gen_mov_tl(tmp2, H[7]);
-	tcg_gen_add_tl(tmp1, tmp2, tmp1);
-	tcg_gen_mov_tl(H[7], tmp1);
 	tcg_gen_movi_tl(tmp1, 0);
-	tcg_gen_mov_tl(state, tmp1);
+	tcg_gen_mov_tl(sp[1], tmp1);
+	tcg_gen_brcondi_tl(TCG_COND_ALWAYS, ctx->zero, 0, label_BB7_4);
+	
+	gen_set_label(label_BB7_4);
+	tcg_gen_mov_tl(tmp1, sp[1]);
+	tcg_gen_brcondi_tl(TCG_COND_GT, tmp1, 7, label_BB7_7);
+	tcg_gen_brcondi_tl(TCG_COND_ALWAYS, ctx->zero, 0, label_BB7_5);
+	
+	gen_set_label(label_BB7_5);
+	tcg_gen_mov_tl(tmp1, sp[1]);
+	tcg_gen_shli_tl(tmp1, tmp1, 2);
+	/*Assign H to tmp2.*/
+	/*Assign H[tmp1] to tmp2.*/
+
+	/*ARRAY ACCESS*/
+	LOAD_ARRAY(ctx, tmp2, H, 8, tmp1, 0, 12);
+	/*End ARRAY ACCESS*/
+
+	/*Assign m to tmp3.*/
+	/*Assign m[tmp1] to tmp1.*/
+
+	/*ARRAY ACCESS*/
+	STORE_ARRAY(ctx, m, 8, tmp1, 0, tmp2, 13);
+	/*End ARRAY ACCESS*/
+
+	tcg_gen_brcondi_tl(TCG_COND_ALWAYS, ctx->zero, 0, label_BB7_6);
+	
+	gen_set_label(label_BB7_6);
+	tcg_gen_mov_tl(tmp1, sp[1]);
+	tcg_gen_addi_tl(tmp1, tmp1, 1);
+	tcg_gen_mov_tl(sp[1], tmp1);
+	tcg_gen_brcondi_tl(TCG_COND_ALWAYS, ctx->zero, 0, label_BB7_4);
+	
+	gen_set_label(label_BB7_7);
+	/*Assign state to tmp1.*/
+	tcg_gen_movi_tl(tmp2, 1);
+	tcg_gen_mov_tl(state, tmp2);
+	/*Assign hidx to tmp1.*/
+	tcg_gen_movi_tl(tmp2, 0);
+	tcg_gen_mov_tl(hidx, tmp2);
+	tcg_gen_brcondi_tl(TCG_COND_ALWAYS, ctx->zero, 0, label_BB7_16);
+	
+	gen_set_label(label_BB7_8);
+	computeHashCore(ctx, r0);
+	tcg_gen_brcondi_tl(TCG_COND_EQ, r0, 0, label_BB7_10);
+	tcg_gen_brcondi_tl(TCG_COND_ALWAYS, ctx->zero, 0, label_BB7_9);
+	
+	gen_set_label(label_BB7_9);
+	/*Assign state to tmp1.*/
+	tcg_gen_movi_tl(tmp2, 2);
+	tcg_gen_mov_tl(state, tmp2);
+	tcg_gen_brcondi_tl(TCG_COND_ALWAYS, ctx->zero, 0, label_BB7_10);
+	
+	gen_set_label(label_BB7_10);
+	tcg_gen_brcondi_tl(TCG_COND_ALWAYS, ctx->zero, 0, label_BB7_16);
+	
+	gen_set_label(label_BB7_11);
+	tcg_gen_movi_tl(tmp1, 0);
+	tcg_gen_mov_tl(sp[0], tmp1);
+	tcg_gen_brcondi_tl(TCG_COND_ALWAYS, ctx->zero, 0, label_BB7_12);
+	
+	gen_set_label(label_BB7_12);
+	tcg_gen_mov_tl(tmp1, sp[0]);
+	tcg_gen_brcondi_tl(TCG_COND_GT, tmp1, 7, label_BB7_15);
+	tcg_gen_brcondi_tl(TCG_COND_ALWAYS, ctx->zero, 0, label_BB7_13);
+	
+	gen_set_label(label_BB7_13);
+	tcg_gen_mov_tl(tmp1, sp[0]);
+	tcg_gen_shli_tl(tmp1, tmp1, 2);
+	/*Assign m to tmp2.*/
+	/*Assign m[tmp1] to tmp2.*/
+
+	/*ARRAY ACCESS*/
+	LOAD_ARRAY(ctx, tmp2, m, 8, tmp1, 0, 14);
+	/*End ARRAY ACCESS*/
+
+	/*Assign H to tmp3.*/
+	/*Assign H[tmp1] to tmp1.*/
+
+	/*ARRAY ACCESS*/
+	LOAD_ARRAY(ctx, tmp3, H, 8, tmp1, 0, 15);
+	/*End ARRAY ACCESS*/
+
+	tcg_gen_add_tl(tmp2, tmp2, tmp3);
+
+	/*ARRAY ACCESS*/
+	STORE_ARRAY(ctx, H, 8, tmp1, 0, tmp2, 16);
+	/*End ARRAY ACCESS*/
+
+	tcg_gen_brcondi_tl(TCG_COND_ALWAYS, ctx->zero, 0, label_BB7_14);
+	
+	gen_set_label(label_BB7_14);
+	tcg_gen_mov_tl(tmp1, sp[0]);
+	tcg_gen_addi_tl(tmp1, tmp1, 1);
+	tcg_gen_mov_tl(sp[0], tmp1);
+	tcg_gen_brcondi_tl(TCG_COND_ALWAYS, ctx->zero, 0, label_BB7_12);
+	
+	gen_set_label(label_BB7_15);
+	tcg_gen_movi_tl(tmp1, 1);
+	tcg_gen_mov_tl(sp[2], tmp1);
+	/*Assign state to tmp1.*/
+	tcg_gen_movi_tl(tmp2, 0);
+	tcg_gen_mov_tl(state, tmp2);
 	/*Assign padState to tmp1.*/
 	tcg_gen_mov_tl(tmp1, padState);
 	tcg_gen_setcondi_tl(TCG_COND_NE, tmp1, tmp1, 0);
 	tcg_gen_andi_tl(tmp1, tmp1, 1);
 	/*Assign dataOut to tmp2.*/
 	tcg_gen_mov_tl(dataOut, tmp1);
-	tcg_gen_movi_tl(tmp3, 1);
-	tcg_gen_brcondi_tl(TCG_COND_ALWAYS, ctx->zero, 0, label_BB7_7);
+	tcg_gen_brcondi_tl(TCG_COND_ALWAYS, ctx->zero, 0, label_BB7_16);
 	
-	gen_set_label(label_BB7_4);
-	tcg_gen_movi_tl(tmp1, 1);
-	tcg_gen_mov_tl(state, tmp1);
-	/*Assign H to tmp1.*/
-	tcg_gen_mov_tl(tmp2, H[7]);
-	/*Assign m to tmp3.*/
-	tcg_gen_mov_tl(m[7], tmp2);
-	tcg_gen_mov_tl(tmp2, H[6]);
-	tcg_gen_mov_tl(m[6], tmp2);
-	tcg_gen_mov_tl(tmp2, H[5]);
-	tcg_gen_mov_tl(m[5], tmp2);
-	tcg_gen_mov_tl(tmp2, H[4]);
-	tcg_gen_mov_tl(m[4], tmp2);
-	tcg_gen_mov_tl(tmp2, H[3]);
-	tcg_gen_mov_tl(m[3], tmp2);
-	tcg_gen_mov_tl(tmp2, H[2]);
-	tcg_gen_mov_tl(m[2], tmp2);
-	tcg_gen_mov_tl(tmp2, H[1]);
-	tcg_gen_mov_tl(m[1], tmp2);
-	tcg_gen_mov_tl(tmp1, H[0]);
-	tcg_gen_mov_tl(m[0], tmp1);
-	/*Assign hidx to tmp1.*/
-	tcg_gen_movi_tl(tmp3, 0);
-	tcg_gen_mov_tl(hidx, tmp3);
-	tcg_gen_brcondi_tl(TCG_COND_ALWAYS, ctx->zero, 0, label_BB7_7);
-	
-	gen_set_label(label_BB7_5);
-	tcg_gen_mov_tl(sp[2], a1);
-	computeHashCore(ctx, r0);
-	tcg_gen_movi_tl(tmp3, 0);
-	tcg_gen_mov_tl(tmp2, sp[2]);
-	tcg_gen_brcondi_tl(TCG_COND_EQ, r0, 0, label_BB7_7);
-	tcg_gen_brcondi_tl(TCG_COND_ALWAYS, ctx->zero, 0, label_BB7_6);
-	
-	gen_set_label(label_BB7_6);
-	tcg_gen_movi_tl(tmp1, 2);
-	
-	gen_set_label(label_BB7_7);
-	tcg_gen_mov_tl(r0, tmp3);
+	gen_set_label(label_BB7_16);
+	tcg_gen_mov_tl(r0, sp[2]);
 	tcg_gen_brcondi_tl(TCG_COND_ALWAYS, ctx->zero, 0, end_label);
 
 	gen_set_label(end_label);

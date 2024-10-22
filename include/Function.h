@@ -20,7 +20,6 @@ public:
     void SetMainStackSize(int size) { mMainStackSize = size; };
     void IncNumArgStacks(int size) { ++mNumArgStacks; WriteArgStack = true; mCurArgStackSize = size; }
 
-    //void AbletoWriteArgStack() { WriteArgStack = true; }
     void NotAbletoWriteArgStack() { WriteArgStack = false; mCurArgStackSize = 0; }
 
     int GetStart() const { return mStart; }

@@ -45,29 +45,6 @@ OptNode* OptNode::MakeNode(Option& option, const yy::location& l, OPCODE op, Opt
     return new OptNode(l, op, left, right);
 }
 
-int OptNode::Push(Option* opt) const {
-    return 0;
-}
-
-int OptNode::Pop(Option* opt) const {
-    return 0;
-}
-
-int OptValueNode::Push(Option* opt) const {
-    return 0;
-}
-
-int OptValueNode::Pop(Option* opt) const {
-    return 0;
-}
-
-int OptFunctionNode::Push(Option* opt) const {
-    return 0;
-}
-
-int OptFunctionNode::Pop(Option* opt) const {
-    return 0;
-}
 
 void OptNode::Analyze(Option* option, Instruction* inst, std::stringstream& ss, int depth, int& times) {
 
@@ -133,7 +110,7 @@ void OptNode::Analyze(Option* option, Instruction* inst, std::stringstream& ss, 
                 } else 
                     option->GetTranslater()->UseHelper(Translater::HelperFlag::LOGICAL_AND);
                     
-                ss << "(tmp" << times++ << ", " << args.str() << ");";
+                ss << "(ctx, tmp" << times++ << ", " << args.str() << ");";
                 break;
             case OPCODE::OP_LOGOR:
                 ss << "LOGICAL_OR";
@@ -143,7 +120,7 @@ void OptNode::Analyze(Option* option, Instruction* inst, std::stringstream& ss, 
                 } else 
                     option->GetTranslater()->UseHelper(Translater::HelperFlag::LOGICAL_OR);
                     
-                ss << "(tmp" << times++ << ", " << args.str() << ");";
+                ss << "(ctx, tmp" << times++ << ", " << args.str() << ");";
                 break;
             case OPCODE::OP_EQ:
                 ss << "tcg_gen_setcond";
@@ -258,7 +235,6 @@ void OptValueNode::Analyze(Option* option, Instruction* inst, std::stringstream&
         ret = option->GetTranslater()->IsGlobalRegister(*mString);
         if(ret < 0)
             option->error(mL, "Unknown Local : " + *mString);
-        //return;
     } else 
         islocal = '_';
 
@@ -447,7 +423,6 @@ void OptLet::Analyze(Option* option, Instruction* inst, std::stringstream& ss, i
                 break;
         }
     }
-    
 }
 
 void OptStateBlock::Analyze(Option* option, Instruction* inst, std::stringstream& ss, int depth) {
@@ -470,10 +445,7 @@ void OptNopStatement::Analyze(Option* option, Instruction* inst, std::stringstre
 }
 
 void OptLetStatement::Analyze(Option* option, Instruction* inst, std::stringstream& ss, int depth) {
-
-    
     mAssign->Analyze(option, inst, ss, depth);
-
 }
 
 void OptFunctionStatement::Analyze(Option* option, Instruction* inst, std::stringstream& ss, int depth) {
@@ -487,7 +459,6 @@ void OptIfStatement::Analyze(Option* option, Instruction* inst, std::stringstrea
     mExpr->Analyze(option, inst, ss, depth, times);
     inst->SetNumTmp(times);
     int label1 = inst->SetLabel();
-    //ss << "//If Statement\n";
     for(int i = 0; i < depth; ++i)
         ss << '\t';
     ss << "tcg_gen_brcondi_tl(TCG_COND_EQ, tmp" << times - 1 << ", 0, label" << label1 << ");\n";
@@ -511,14 +482,12 @@ void OptIfStatement::Analyze(Option* option, Instruction* inst, std::stringstrea
             ss << '\t';
         ss << "gen_set_label(label" << label1 << ");\n"; 
     }
-    //ss << "//If Statement End\n";
 }
 
 void OptWhileStatement::Analyze(Option* option, Instruction* inst, std::stringstream& ss, int depth) {
     int label1 = inst->SetLabel();
     int label2 = inst->SetLabel();
     int times = 0;
-    //ss << "//While Statement\n";
     ss << '\n';
     for(int i = 0; i < depth; ++i)
         ss << '\t';
@@ -535,7 +504,6 @@ void OptWhileStatement::Analyze(Option* option, Instruction* inst, std::stringst
     for(int i = 0; i < depth; ++i)
         ss << '\t';
     ss << "gen_set_label(label" << label2 << ");\n";
-    //ss << "//While Statement End\n";
 }
 
 void OptBlockStatement::Analyze(Option* option, Instruction* inst, std::stringstream& ss, int depth) {

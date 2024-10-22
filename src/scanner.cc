@@ -1949,9 +1949,12 @@ void yyfree (void * ptr )
 #line 119 "scanner.l"
 
 
-void Option::scan_begin() {
-    if((yyin = fopen(mFileName.c_str(), "r")) == 0)
+bool Option::scan_begin() {
+    if((yyin = fopen(mFileName.c_str(), "r")) == 0) {
         error("Failed to open file : " + mFileName);
+        return false;
+    } 
+    return true;  
 }
 
 void Option::scan_end() {
