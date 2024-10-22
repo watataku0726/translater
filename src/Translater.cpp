@@ -1163,7 +1163,7 @@ void Translater::GenerateHelpers(std::stringstream& ss) {
 
     if(mHelperFlag & HelperFlag::STORE_ARRAY) {
 
-        ss  << "#define STORE_ARRAY(ctx, array, length, index_reg, offset, rs, n)\t\t\t\t\t\\\n"
+        ss  << "#define STORE_ARRAY(ctx, array, length, index_reg, offset, rs, n)\t\t\t\t\t\t\\\n"
             << "\t{\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\\\n"
             << "\t\ttcg_gen_sari_tl(index, (index_reg), " << WORDSIZE_SHIFT << ");\t\t\t\t\t\t\t\t\t\t\t\\\n"
             << "\t\ttcg_gen_addi_tl(index, index, (offset));\t\t\t\t\t\t\t\t\t\t\\\n"
