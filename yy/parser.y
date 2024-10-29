@@ -140,7 +140,7 @@ statement           : ';'                                               { $$ = n
                     | "if" '(' expr ')' statement                       { $$ = new OptIfStatement(@1, $3, $5); }  
                     | "if" '(' expr ')' statement "else" statement      { $$ = new OptIfStatement(@1, $3, $5, $7); }
                     | "while" '(' expr ')' statement                    { $$ = new OptWhileStatement(@1, $3, $5); }
-                    | value "<=" "load" '<' value '>' ';'               { $$ = new OptLoadStatement(@1, $1, $5); }
+                    | "load" value "<=" '<' value '>' ';'               { $$ = new OptLoadStatement(@1, $2, $5); }
                     | "store" '<' value '>' "<=" value ';'              { $$ = new OptStoreStatement(@1, $6, $3); }
                     | block                                             { $$ = new OptBlockStatement(@1, $1); }
                     ;
