@@ -31,7 +31,7 @@ def loadData : Instruction {
         let opOut = 36;
         let memAddrOut = 0;
         let ready = loadData(memLoadDataIn);
-        if(opOut == 6) memLoadDataIn <= load<memAddrOut>;
+        if(opOut == 6) load memLoadDataIn <= <memAddrOut>;
     }
     let rd_ = dataOut;
 }
@@ -45,7 +45,7 @@ def storeData : Instruction {
         let opOut = 36;
         let memAddrOut = 0;
         let ready = storeData();
-        if(opOut == 7) store<memAddrOut> <= dataOut;
+        if(opOut == 7) store <memAddrOut> <= dataOut;
     }
     let rd_ = dataOut;
 }

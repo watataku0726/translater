@@ -21,7 +21,7 @@
 		gen_set_label((local_end##n));													\
 	}
 
-#define STORE_ARRAY(ctx, array, length, index_reg, offset, rs, n)					\
+#define STORE_ARRAY(ctx, array, length, index_reg, offset, rs, n)						\
 	{																					\
 		tcg_gen_sari_tl(index, (index_reg), 2);											\
 		tcg_gen_addi_tl(index, index, (offset));										\
