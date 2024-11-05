@@ -79,6 +79,7 @@ private:
     int mN;
     int mHelperFlag;
     bool mStackFlag;
+    bool mHasInit;
 
 private:
 
@@ -92,6 +93,7 @@ private:
     void Prologue(std::stringstream& ss);
     void Epilogue(std::stringstream& ss);
     void GenerateHelpers(std::stringstream& ss);
+    void GenerateNewRegisters(std::stringstream& ss);
 
     void NormalStatement(int pos, std::stringstream& ss,  int& function_number);
 
