@@ -492,10 +492,10 @@ bool Translater::Analyze_in_InObject(const std::string& line, State& state) {
         if(line.substr(offset, 7) == ".rodata")
             state = State::InConstobject;
     } else if(opcode == ".p2align") {
-        std::string imm;
-        offset += opcode.size() + 1;
-        GetSubString(line.c_str() + offset, imm, '\0');
-        p2align = atol(imm.c_str());
+        //std::string imm;
+        //offset += opcode.size() + 1;
+        //GetSubString(line.c_str() + offset, imm, '\0');
+        //p2align = atol(imm.c_str());
     } else if(opcode == ".size") {
         std::string name, imm;
         offset += opcode.size() + 1;

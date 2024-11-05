@@ -136,7 +136,7 @@ label_BB1_1:                            # %if.then
 	?ld	2, tmp1, 0(sp)
 	tcg_gen_brcondi_tl(TCG_COND_EQ, tmp1, 0, label_BB1_3);
 	?goto	label_BB1_2.
-label_BB1_2:                            # %if.then2
+label_BB1_2:                            # %if.then3
 	?assign	tmp1, inBytes.
 	?ld	2, tmp1, 0(tmp1)
 	!shli	tmp1, tmp1, 3.
@@ -151,12 +151,12 @@ label_BB1_3:                            # %if.else
 	?goto	label_BB1_4.
 label_BB1_4:                            # %if.end
 	?goto	label_BB1_6.
-label_BB1_5:                            # %if.else3
+label_BB1_5:                            # %if.else4
 	?ld	2, a0, 8(sp)
 	?call	_Z41convBigEndianWithStringTerminationPaddingj.
 	?st	2, 4(sp), r0.
 	?goto	label_BB1_6.
-label_BB1_6:                            # %if.end4
+label_BB1_6:                            # %if.end5
 	?ld	2, tmp1, 4(sp)
 	?assign	tmp2, pidx.
 	?ld	2, tmp2, 0(tmp2)
@@ -208,24 +208,16 @@ label_BB2_1:                            # %if.then
 label_BB2_2:                            # %if.else
 	?assign	tmp1, W.
 	?ld	2, tmp2, 56(tmp1)
-	!shri	tmp3, tmp2, 17.
-	!shli	tmp4, tmp2, 15.
-	!or	tmp3, tmp3, tmp4.
-	!shri	tmp4, tmp2, 19.
-	!shli	tmp5, tmp2, 13.
-	!or	tmp4, tmp4, tmp5.
+	!rotli	tmp3, tmp2, 15.
+	!rotli	tmp4, tmp2, 13.
 	!xor	tmp3, tmp3, tmp4.
 	!shri	tmp2, tmp2, 10.
 	!xor	tmp2, tmp3, tmp2.
 	?ld	2, tmp3, 36(tmp1)
 	!add	tmp2, tmp2, tmp3.
 	?ld	2, tmp3, 4(tmp1)
-	!shri	tmp4, tmp3, 7.
-	!shli	tmp5, tmp3, 25.
-	!or	tmp4, tmp4, tmp5.
-	!shri	tmp5, tmp3, 18.
-	!shli	tmp6, tmp3, 14.
-	!or	tmp5, tmp5, tmp6.
+	!rotli	tmp4, tmp3, 25.
+	!rotli	tmp5, tmp3, 14.
 	!xor	tmp4, tmp4, tmp5.
 	!shri	tmp3, tmp3, 3.
 	!xor	tmp3, tmp4, tmp3.
@@ -265,16 +257,10 @@ label_BB2_7:                            # %if.end
 	?assign	tmp1, m.
 	?ld	2, tmp2, 28(tmp1)
 	?ld	2, tmp3, 16(tmp1)
-	!shri	tmp4, tmp3, 6.
-	!shli	tmp5, tmp3, 26.
-	!or	tmp4, tmp4, tmp5.
-	!shri	tmp5, tmp3, 11.
-	!shli	tmp6, tmp3, 21.
-	!or	tmp5, tmp5, tmp6.
+	!rotli	tmp4, tmp3, 26.
+	!rotli	tmp5, tmp3, 21.
 	!xor	tmp4, tmp4, tmp5.
-	!shri	tmp5, tmp3, 25.
-	!shli	tmp6, tmp3, 7.
-	!or	tmp5, tmp5, tmp6.
+	!rotli	tmp5, tmp3, 7.
 	!xor	tmp4, tmp4, tmp5.
 	!add	tmp2, tmp2, tmp4.
 	?ld	2, tmp4, 20(tmp1)
@@ -294,16 +280,10 @@ label_BB2_7:                            # %if.end
 	!add	tmp2, tmp2, tmp3.
 	?st	2, 8(sp), tmp2.
 	?ld	2, tmp2, 0(tmp1)
-	!shri	tmp3, tmp2, 2.
-	!shli	tmp4, tmp2, 30.
-	!or	tmp3, tmp3, tmp4.
-	!shri	tmp4, tmp2, 13.
-	!shli	tmp5, tmp2, 19.
-	!or	tmp4, tmp4, tmp5.
+	!rotli	tmp3, tmp2, 30.
+	!rotli	tmp4, tmp2, 19.
 	!xor	tmp3, tmp3, tmp4.
-	!shri	tmp4, tmp2, 22.
-	!shli	tmp5, tmp2, 10.
-	!or	tmp4, tmp4, tmp5.
+	!rotli	tmp4, tmp2, 10.
 	!xor	tmp3, tmp3, tmp4.
 	?ld	2, tmp4, 4(tmp1)
 	!and	tmp5, tmp2, tmp4.
@@ -559,19 +539,19 @@ label_BB5_12:                           # %sw.default
 	?goto	label_BB5_13.
 label_BB5_13:                           # %sw.epilog
 	?goto	label_BB5_14.
-label_BB5_14:                           # %if.end13
+label_BB5_14:                           # %if.end14
 	?goto	label_BB5_15.
-label_BB5_15:                           # %if.end14
+label_BB5_15:                           # %if.end15
 	?ld	0, tmp1, 20(sp)
 	!andi	tmp1, tmp1, 1.
 	tcg_gen_brcondi_tl(TCG_COND_EQ, tmp1, 0, label_BB5_17);
 	?goto	label_BB5_16.
-label_BB5_16:                           # %if.then16
+label_BB5_16:                           # %if.then17
 	?assign	tmp1, dataOut.
 	!movi	tmp2, 1.
 	?st	2, 0(tmp1), tmp2.
 	?goto	label_BB5_20.
-label_BB5_17:                           # %if.else17
+label_BB5_17:                           # %if.else18
 	?assign	tmp1, memAddr.
 	?ld	2, tmp2, 0(tmp1)
 	?assign	tmp3, memAddrOut.
@@ -583,9 +563,9 @@ label_BB5_17:                           # %if.else17
 	!movi	tmp2, 1.
 	!movi	tmp5, 0.
 	tcg_gen_brcond_tl(TCG_COND_NE, tmp4, tmp5, label_BB5_19);
-# %bb.18:                               # %if.else17
+# %bb.18:                               # %if.else18
 	!mov	tmp2, tmp3.
-label_BB5_19:                           # %if.else17
+label_BB5_19:                           # %if.else18
 	?assign	tmp3, numBytesOut.
 	?st	2, 0(tmp3), tmp2.
 	?ld	2, tmp2, 0(tmp3)
@@ -599,7 +579,7 @@ label_BB5_19:                           # %if.else17
 	?assign	tmp2, numBytes.
 	?st	2, 0(tmp2), tmp1.
 	?goto	label_BB5_20.
-label_BB5_20:                           # %if.end21
+label_BB5_20:                           # %if.end22
 	?ld	0, tmp1, 20(sp)
 	!xori	tmp1, tmp1, -1.
 	!andi	tmp1, tmp1, 1.
@@ -696,7 +676,7 @@ label_BB6_9:                            # %sw.epilog
 	?ld	2, tmp1, 0(tmp3)
 	tcg_gen_brcondi_tl(TCG_COND_NE, tmp1, 1, label_BB6_16);
 	?goto	label_BB6_10.
-label_BB6_10:                           # %if.then5
+label_BB6_10:                           # %if.then7
 	?assign	tmp1, state.
 	?ld	2, tmp1, 0(tmp1)
 	tcg_gen_brcondi_tl(TCG_COND_NE, tmp1, 0, label_BB6_12);
@@ -722,7 +702,7 @@ label_BB6_13:                           # %cond.end
 	!andi	tmp1, tmp1, 3.
 	tcg_gen_brcondi_tl(TCG_COND_NE, tmp1, 3, label_BB6_15);
 	?goto	label_BB6_14.
-label_BB6_14:                           # %if.then11
+label_BB6_14:                           # %if.then13
 	?assign	tmp1, pidx.
 	?ld	2, tmp2, 0(tmp1)
 	!addi	tmp2, tmp2, 1.
@@ -730,7 +710,7 @@ label_BB6_14:                           # %if.then11
 	?goto	label_BB6_15.
 label_BB6_15:                           # %if.end
 	?goto	label_BB6_23.
-label_BB6_16:                           # %if.else12
+label_BB6_16:                           # %if.else14
 	?assign	tmp1, bytePos.
 	?ld	2, tmp2, 0(tmp1)
 	!shli	tmp2, tmp2, 3.
@@ -743,10 +723,10 @@ label_BB6_16:                           # %if.else12
 	?ld	2, tmp1, 0(tmp1)
 	tcg_gen_brcondi_tl(TCG_COND_NE, tmp1, 0, label_BB6_18);
 	?goto	label_BB6_17.
-label_BB6_17:                           # %cond.true15
+label_BB6_17:                           # %cond.true17
 	?ld	2, tmp1, 12(sp)
 	?goto	label_BB6_19.
-label_BB6_18:                           # %cond.false16
+label_BB6_18:                           # %cond.false18
 	?assign	tmp1, tmpWord.
 	?ld	2, tmp1, 0(tmp1)
 	?ld	2, tmp2, 12(sp)
@@ -754,7 +734,7 @@ label_BB6_18:                           # %cond.false16
 	!shl	tmp2, tmp2, tmp3.
 	!or	tmp1, tmp1, tmp2.
 	?goto	label_BB6_19.
-label_BB6_19:                           # %cond.end18
+label_BB6_19:                           # %cond.end20
 	?assign	tmp2, dataOut.
 	?st	2, 0(tmp2), tmp1.
 	?ld	2, tmp1, 12(sp)
@@ -769,30 +749,30 @@ label_BB6_19:                           # %cond.end18
 	!addi	tmp2, tmp2, -1.
 	tcg_gen_brcond_tl(TCG_COND_LTU, tmp1, tmp2, label_BB6_21);
 	?goto	label_BB6_20.
-label_BB6_20:                           # %if.then23
+label_BB6_20:                           # %if.then25
 	?assign	tmp1, pidx.
 	!movi	tmp2, 0.
 	?st	2, 0(tmp1), tmp2.
 	!movi	tmp1, 1.
 	?st	0, 16(sp), tmp1.
 	?goto	label_BB6_22.
-label_BB6_21:                           # %if.else24
+label_BB6_21:                           # %if.else26
 	?assign	tmp1, pidx.
 	?ld	2, tmp2, 0(tmp1)
 	!addi	tmp2, tmp2, 1.
 	?st	2, 0(tmp1), tmp2.
 	?goto	label_BB6_22.
-label_BB6_22:                           # %if.end26
+label_BB6_22:                           # %if.end28
 	?goto	label_BB6_23.
-label_BB6_23:                           # %if.end27
+label_BB6_23:                           # %if.end29
 	?ld	0, tmp4, 16(sp)
 	!movi	tmp3, 1.
 	!movi	tmp2, 2.
 	!movi	tmp1, 0.
 	tcg_gen_brcond_tl(TCG_COND_NE, tmp4, tmp1, label_BB6_25);
-# %bb.24:                               # %if.end27
+# %bb.24:                               # %if.end29
 	!mov	tmp2, tmp3.
-label_BB6_25:                           # %if.end27
+label_BB6_25:                           # %if.end29
 	?assign	tmp3, state.
 	?st	2, 0(tmp3), tmp2.
 	?assign	tmp2, opOut.
@@ -860,7 +840,7 @@ label_BB7_7:                            # %for.end
 	!movi	tmp2, 0.
 	?st	2, 0(tmp1), tmp2.
 	?goto	label_BB7_16.
-label_BB7_8:                            # %sw.bb2
+label_BB7_8:                            # %sw.bb3
 	?call	_Z15computeHashCorev.
 	tcg_gen_brcondi_tl(TCG_COND_EQ, r0, 0, label_BB7_10);
 	?goto	label_BB7_9.
@@ -871,16 +851,16 @@ label_BB7_9:                            # %if.then
 	?goto	label_BB7_10.
 label_BB7_10:                           # %if.end
 	?goto	label_BB7_16.
-label_BB7_11:                           # %sw.bb3
+label_BB7_11:                           # %sw.bb4
 	!movi	tmp1, 0.
 	?st	2, 0(sp), tmp1.
 	?goto	label_BB7_12.
-label_BB7_12:                           # %for.cond5
+label_BB7_12:                           # %for.cond6
                                         # =>This Inner Loop Header: Depth=1
 	?ld	2, tmp1, 0(sp)
 	tcg_gen_brcondi_tl(TCG_COND_GT, tmp1, 7, label_BB7_15);
 	?goto	label_BB7_13.
-label_BB7_13:                           # %for.body7
+label_BB7_13:                           # %for.body8
                                         #   in Loop: Header=BB7_12 Depth=1
 	?ld	2, tmp1, 0(sp)
 	!shli	tmp1, tmp1, 2.
@@ -893,13 +873,13 @@ label_BB7_13:                           # %for.body7
 	!add	tmp2, tmp2, tmp3.
 	?st	2, 0(tmp1), tmp2.
 	?goto	label_BB7_14.
-label_BB7_14:                           # %for.inc11
+label_BB7_14:                           # %for.inc15
                                         #   in Loop: Header=BB7_12 Depth=1
 	?ld	2, tmp1, 0(sp)
 	!addi	tmp1, tmp1, 1.
 	?st	2, 0(sp), tmp1.
 	?goto	label_BB7_12.
-label_BB7_15:                           # %for.end13
+label_BB7_15:                           # %for.end17
 	!movi	tmp1, 1.
 	?st	2, 8(sp), tmp1.
 	?assign	tmp1, state.
@@ -999,21 +979,21 @@ memAddr:
 
 	.type	H,@object                       # @H
 	.globl	H
-	.p2align	2
+	.p2align	4
 H:
 	.space	32
 	.size	H, 32
 
 	.type	W,@object                       # @W
 	.globl	W
-	.p2align	2
+	.p2align	4
 W:
 	.space	64
 	.size	W, 64
 
 	.type	m,@object                       # @m
 	.globl	m
-	.p2align	2
+	.p2align	4
 m:
 	.space	32
 	.size	m, 32
@@ -1048,7 +1028,7 @@ inBytes:
 
 	.type	_ZL1K,@object                   # @_ZL1K
 	.section	.rodata,"a",@progbits
-	.p2align	2
+	.p2align	4
 _ZL1K:
 	.4bytes	1116352408                      # 0x428a2f98
 	.4bytes	1899447441                      # 0x71374491
@@ -1117,7 +1097,7 @@ _ZL1K:
 	.size	_ZL1K, 256
 
 	.type	_ZL2H0,@object                  # @_ZL2H0
-	.p2align	2
+	.p2align	4
 _ZL2H0:
 	.4bytes	1779033703                      # 0x6a09e667
 	.4bytes	3144134277                      # 0xbb67ae85
