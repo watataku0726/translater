@@ -228,14 +228,14 @@ void Translater::RunLoop() {
             << "/*=========================================================================================*/\n"
             << "/*\t1. Install \"" << mOutputFile <<"\" in target/riscv/translate.c  \n";
     if(mHasInit) {
-        file    << "  \t2. The function void riscv_translate_init(void) in target/riscv/translate.c calls the function \"riscv_" 
+        file    << "\t2. The function void riscv_translate_init(void) in target/riscv/translate.c calls the function \"riscv_" 
                 << mOption->GetProjectName() << "_translate_init\".\n"
                 << "\t3. Add the following two statements to struct CPUArchState in target/riscv/cpu.h.\n"
                 << "\t\t#define NEW_REGISTERS\n"
-                << "\t\t#include \"insn_trans/" << mOutputFile << "\"\n"
-                << "/ =========================================================================================*/\n\n";   
+                << "\t\t#include \"insn_trans/" << mOutputFile << "\"\n";
+                  
     }
- 
+    file << "/ =========================================================================================*/\n\n"; 
 
     file << helperss.rdbuf() << ss.rdbuf();
 
@@ -1255,7 +1255,7 @@ void Translater::GenerateHelpers(std::stringstream& ss) {
     if(mHelperFlag & HelperFlag::LOGICAL_AND) {
         ss  << "#if !defined(__HELPERS_LOGICAL_AND__)\n"
             << "#define __HELPERS_LOGICAL_AND__\n"
-            << "static void LOGICAL_AND(DisasContext *ctx, TCGv rd, TCGv rs1, TCGv rs2){\n"
+            << "static void LOGICAL_AND(DisasContext *ctx, TCGv rd, TCGv rs1, TCGv rs2) {\n"
             << "\tTCGLabel *label = gen_new_label();\n"
             << "\ttcg_gen_movi_tl(rd, 0);\n"
             << "\ttcg_gen_brcondi_tl(TCG_COND_EQ, rs1, 0x0, label);\n"
@@ -1269,7 +1269,7 @@ void Translater::GenerateHelpers(std::stringstream& ss) {
     if(mHelperFlag & HelperFlag::LOGICAL_OR) {
         ss  << "#if !defined(__HELPERS_LOGICAL_OR__)\n"
             << "#define __HELPERS_LOGICAL_OR__\n"
-            << "static void LOGICAL_OR(DisasContext *ctx, TCGv rd, TCGv rs1, TCGv rs2){\n"
+            << "static void LOGICAL_OR(DisasContext *ctx, TCGv rd, TCGv rs1, TCGv rs2) {\n"
             << "\tTCGLabel *label = gen_new_label();\n"
             << "\ttcg_gen_movi_tl(rd, 1);\n"
             << "\ttcg_gen_brcondi_tl(TCG_COND_NE, rs1, 0x0, label);\n"
@@ -1283,7 +1283,7 @@ void Translater::GenerateHelpers(std::stringstream& ss) {
     if(mHelperFlag & HelperFlag::LOGICAL_ANDi) {
         ss  << "#if !defined(__HELPERS_LOGICAL_AND_I__)\n"
             << "#define __HELPERS_LOGICAL_AND_I__\n"
-            << "static void LOGICAL_ANDi(DisasContext *ctx, TCGv rd, TCGv rs1, int imm){\n"
+            << "static void LOGICAL_ANDi(DisasContext *ctx, TCGv rd, TCGv rs1, int imm) {\n"
             << "\tTCGLabel *label = gen_new_label();\n"
             << "\tTCGv rs2 = tcg_temp_new();\n"
             << "\ttcg_gen_movi_tl(rs2, imm);\n"
@@ -1299,7 +1299,7 @@ void Translater::GenerateHelpers(std::stringstream& ss) {
     if(mHelperFlag & HelperFlag::LOGICAL_ORi) {
         ss  << "#if !defined(__HELPERS_LOGICAL_OR_I__)\n"
             << "#define __HELPERS_LOGICAL_OR_I__\n"
-            << "static void LOGICAL_ORi(DisasContext *ctx, TCGv rd, TCGv rs1, int imm){\n"
+            << "static void LOGICAL_ORi(DisasContext *ctx, TCGv rd, TCGv rs1, int imm) {\n"
             << "\tTCGLabel *label = gen_new_label();\n"
             << "\tTCGv rs2 = tcg_temp_new();\n"
             << "\ttcg_gen_movi_tl(rs2, imm);\n"

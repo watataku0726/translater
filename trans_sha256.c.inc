@@ -4,7 +4,7 @@
 
 /*=========================================================================================*/
 /*	1. Install "trans_sha256.c.inc" in target/riscv/translate.c  
-  	2. The function void riscv_translate_init(void) in target/riscv/translate.c calls the function "riscv_sha256_translate_init".
+	2. The function void riscv_translate_init(void) in target/riscv/translate.c calls the function "riscv_sha256_translate_init".
 	3. Add the following two statements to struct CPUArchState in target/riscv/cpu.h.
 		#define NEW_REGISTERS
 		#include "insn_trans/trans_sha256.c.inc"
