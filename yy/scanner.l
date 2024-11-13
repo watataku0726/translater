@@ -28,7 +28,7 @@
 %option nounistd
 
 id      [a-zA-Z_][a-zA-Z_0-9]*
-int     [1-9][0-9]*
+int     [-]?[1-9][0-9]*
 blank   [ \t]
 
 %x C_COMMENT
