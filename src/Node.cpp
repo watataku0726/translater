@@ -62,11 +62,17 @@ void OptNode::Analyze(Option* option, Instruction* inst, std::stringstream& ss, 
         ss << "tcg_gen_movi_tl(tmp" << times++ << ", " << mValue << ");\n";
         return;
     } else if(mOp == OPCODE::OP_NEG) {
-        mLeft->Analyze(option,inst, ss, depth, times);
-        for(int i = 0; i < depth; ++i) 
-            ss << '\t';
-        ss << "tcg_gen_neg_tl(tmp" << times <<", tmp" << times - 1 << ");\n";
+        if(mLeft->Op() == OPCODE::OP_VALUE) {
+            for(int i = 0; i < depth; ++i) 
+                ss << '\t';
+            ss << "tcg_gen_neg_tl(tmp" << times++ << ", " << mLeft->String() << ");\n";
+        } else {
+            mLeft->Analyze(option,inst, ss, depth, times);
+            for(int i = 0; i < depth; ++i) 
+                ss << '\t';
+            ss << "tcg_gen_neg_tl(tmp" << times <<", tmp" << times - 1 << ");\n";
         ++times;
+        }
         return;
     }
     
@@ -431,10 +437,12 @@ void OptLet::Analyze(Option* option, Instruction* inst, std::stringstream& ss, i
                 ss << "tcg_gen_mov_tl(" << mValue->String() << (islocalmValue ? "_" : "")  << ", tmp" << times - 1 << ");\n";
                 break;
             case '+':
-                ss << "tcg_gen_add_tl(" << mValue->String() << (islocalmValue ? "_" : "") << ", " << mValue->String() << ", tmp" << times - 1 << ");\n";
+                ss  << "tcg_gen_add_tl(" << mValue->String() << (islocalmValue ? "_" : "") << ", " 
+                    << mValue->String() << (islocalmValue ? "_" : "") << ", tmp" << times - 1 << ");\n";
                 break;
             case '-':
-                ss << "tcg_gen_sub_tl(" << mValue->String() << (islocalmValue ? "_" : "") << ", " << mValue->String() << ", tmp" << times - 1 << ");\n";
+                ss  << "tcg_gen_sub_tl(" << mValue->String() << (islocalmValue ? "_" : "") << ", " 
+                    << mValue->String() << (islocalmValue ? "_" : "") << ", tmp" << times - 1 << ");\n";
                 break;
         }
     }
