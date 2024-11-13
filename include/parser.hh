@@ -285,7 +285,8 @@ namespace yy {
     TK_PROJECTNAME = 278,          // "projectName"
     TK_RD = 279,                   // "rd"
     TK_RS1 = 280,                  // "rs1"
-    TK_RS2 = 281                   // "rs2"
+    TK_RS2 = 281,                  // "rs2"
+    NEG = 282                      // NEG
       };
       /// Backward compatibility alias (Bison 3.6).
       typedef token_kind_type yytokentype;
@@ -302,7 +303,7 @@ namespace yy {
     {
       enum symbol_kind_type
       {
-        YYNTOKENS = 37, ///< Number of tokens.
+        YYNTOKENS = 39, ///< Number of tokens.
         S_YYEMPTY = -2,
         S_YYEOF = 0,                             // "end of file"
         S_YYerror = 1,                           // error
@@ -333,29 +334,31 @@ namespace yy {
         S_TK_RS2 = 26,                           // "rs2"
         S_27_ = 27,                              // '>'
         S_28_ = 28,                              // '<'
-        S_29_ = 29,                              // ';'
-        S_30_ = 30,                              // ':'
-        S_31_ = 31,                              // '='
-        S_32_ = 32,                              // '{'
-        S_33_ = 33,                              // '}'
-        S_34_ = 34,                              // '('
-        S_35_ = 35,                              // ')'
-        S_36_ = 36,                              // ','
-        S_YYACCEPT = 37,                         // $accept
-        S_unit = 38,                             // unit
-        S_define_or_state = 39,                  // define_or_state
-        S_inst_block = 40,                       // inst_block
-        S_block = 41,                            // block
-        S_decl_list = 42,                        // decl_list
-        S_state_list = 43,                       // state_list
-        S_decls = 44,                            // decls
-        S_declaration = 45,                      // declaration
-        S_states = 46,                           // states
-        S_statement = 47,                        // statement
-        S_assign = 48,                           // assign
-        S_expr = 49,                             // expr
-        S_value = 50,                            // value
-        S_args = 51                              // args
+        S_NEG = 29,                              // NEG
+        S_30_ = 30,                              // ';'
+        S_31_ = 31,                              // ':'
+        S_32_ = 32,                              // '='
+        S_33_ = 33,                              // '{'
+        S_34_ = 34,                              // '}'
+        S_35_ = 35,                              // '('
+        S_36_ = 36,                              // ')'
+        S_37_ = 37,                              // '-'
+        S_38_ = 38,                              // ','
+        S_YYACCEPT = 39,                         // $accept
+        S_unit = 40,                             // unit
+        S_define_or_state = 41,                  // define_or_state
+        S_inst_block = 42,                       // inst_block
+        S_block = 43,                            // block
+        S_decl_list = 44,                        // decl_list
+        S_state_list = 45,                       // state_list
+        S_decls = 46,                            // decls
+        S_declaration = 47,                      // declaration
+        S_states = 48,                           // states
+        S_statement = 49,                        // statement
+        S_assign = 50,                           // assign
+        S_expr = 51,                             // expr
+        S_value = 52,                            // value
+        S_args = 53                              // args
       };
     };
 
@@ -867,7 +870,7 @@ namespace yy {
     /// Constants.
     enum
     {
-      yylast_ = 158,     ///< Last index in yytable_.
+      yylast_ = 161,     ///< Last index in yytable_.
       yynnts_ = 15,  ///< Number of nonterminal symbols.
       yyfinal_ = 9 ///< Termination state number.
     };
@@ -880,7 +883,7 @@ namespace yy {
 
 
 } // yy
-#line 884 "parser.hh"
+#line 887 "parser.hh"
 
 
 

@@ -28,7 +28,7 @@
 %option nounistd
 
 id      [a-zA-Z_][a-zA-Z_0-9]*
-int     [-]?[1-9][0-9]*
+int     [1-9][0-9]*
 blank   [ \t]
 
 %x C_COMMENT
@@ -69,7 +69,7 @@ blank   [ \t]
 
     \\\n            yylloc->lines();
 
-    [=(){}<>,:;]      return yy::parser::token_type(yytext[0]);
+    [-=(){}<>,:;]      return yy::parser::token_type(yytext[0]);
 
     "&&"            return token::TK_LOGAND;
     "||"            return token::TK_LOGOR;

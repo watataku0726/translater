@@ -1,4 +1,4 @@
-State 107 conflicts: 1 shift/reduce
+State 109 conflicts: 1 shift/reduce
 
 
 Grammar
@@ -57,24 +57,26 @@ Grammar
    39     | expr "<=" expr
    40     | expr '>' expr
    41     | expr '<' expr
-   42     | '(' expr ')'
-   43     | value
-   44     | "ival"
-   45     | "identifier" '(' args ')'
-   46     | "identifier" '(' ')'
+   42     | '-' expr
+   43     | '(' expr ')'
+   44     | value
+   45     | "ival"
+   46     | "identifier" '(' args ')'
+   47     | "identifier" '(' ')'
 
-   47 value: "identifier"
+   48 value: "identifier"
 
-   48 args: expr
-   49     | args ',' expr
+   49 args: expr
+   50     | args ',' expr
 
 
 Terminals, with rules where they appear
 
     "end of file" (0) 0
-    '(' (40) 23 24 25 26 27 42 45 46
-    ')' (41) 23 24 25 26 27 42 45 46
-    ',' (44) 49
+    '(' (40) 23 24 25 26 27 43 46 47
+    ')' (41) 23 24 25 26 27 43 46 47
+    ',' (44) 50
+    '-' (45) 42
     ':' (58) 4 5 15 16 17 18
     ';' (59) 3 4 6 15 16 17 18 21 22 23 24 28 29
     '<' (60) 28 29 41
@@ -83,8 +85,8 @@ Terminals, with rules where they appear
     '{' (123) 7 8
     '}' (125) 7 8
     error (256) 3
-    "ival" <ival> (258) 44
-    "identifier" <sval> (259) 4 5 6 23 24 45 46 47
+    "ival" <ival> (258) 45
+    "identifier" <sval> (259) 4 5 6 23 24 46 47 48
     "||" (260) 35
     "&&" (261) 34
     "==" (262) 36
@@ -107,54 +109,55 @@ Terminals, with rules where they appear
     "rd" (279) 16
     "rs1" (280) 17
     "rs2" (281) 18
+    NEG (282)
 
 
 Nonterminals, with rules where they appear
 
-    $accept (37)
+    $accept (39)
         on left: 0
-    unit (38)
+    unit (40)
         on left: 1 2
         on right: 0 2
-    define_or_state (39)
+    define_or_state (41)
         on left: 3 4 5 6
         on right: 1 2
-    inst_block <block> (40)
+    inst_block <block> (42)
         on left: 7
         on right: 5
-    block <block> (41)
+    block <block> (43)
         on left: 8
         on right: 30
-    decl_list <decls> (42)
+    decl_list <decls> (44)
         on left: 9 10
         on right: 7
-    state_list <states> (43)
+    state_list <states> (45)
         on left: 11 12
         on right: 7 8
-    decls <decls> (44)
+    decls <decls> (46)
         on left: 13 14
         on right: 10 14
-    declaration <declaration> (45)
+    declaration <declaration> (47)
         on left: 15 16 17 18
         on right: 13 14
-    states <states> (46)
+    states <states> (48)
         on left: 19 20
         on right: 12 20
-    statement <statement> (47)
+    statement <statement> (49)
         on left: 21 22 23 24 25 26 27 28 29 30
         on right: 19 20 25 26 27
-    assign <assign> (48)
+    assign <assign> (50)
         on left: 31 32 33
         on right: 22
-    expr <expr> (49)
-        on left: 34 35 36 37 38 39 40 41 42 43 44 45 46
-        on right: 25 26 27 31 32 33 34 35 36 37 38 39 40 41 42 48 49
-    value <value> (50)
-        on left: 47
-        on right: 15 16 17 18 28 29 31 32 33 43
-    args <args> (51)
-        on left: 48 49
-        on right: 23 45 49
+    expr <expr> (51)
+        on left: 34 35 36 37 38 39 40 41 42 43 44 45 46 47
+        on right: 25 26 27 31 32 33 34 35 36 37 38 39 40 41 42 43 49 50
+    value <value> (52)
+        on left: 48
+        on right: 15 16 17 18 28 29 31 32 33 44
+    args <args> (53)
+        on left: 49 50
+        on right: 23 46 50
 
 
 State 0
@@ -345,7 +348,7 @@ State 20
    16            | "def" • value ':' "rd" ';'
    17            | "def" • value ':' "rs1" ';'
    18            | "def" • value ':' "rs2" ';'
-   47 value: • "identifier"
+   48 value: • "identifier"
 
     "identifier"  shift, and go to state 24
 
@@ -417,9 +420,9 @@ State 23
 
 State 24
 
-   47 value: "identifier" •
+   48 value: "identifier" •
 
-    $default  reduce using rule 47 (value)
+    $default  reduce using rule 48 (value)
 
 
 State 25
@@ -460,7 +463,7 @@ State 29
    31 assign: "let" • value '=' expr
    32       | "let" • value "+=" expr
    33       | "let" • value "-=" expr
-   47 value: • "identifier"
+   48 value: • "identifier"
 
     "identifier"  shift, and go to state 24
 
@@ -470,7 +473,7 @@ State 29
 State 30
 
    28 statement: "load" • value "<=" '<' value '>' ';'
-   47 value: • "identifier"
+   48 value: • "identifier"
 
     "identifier"  shift, and go to state 24
 
@@ -626,23 +629,25 @@ State 41
    39     | • expr "<=" expr
    40     | • expr '>' expr
    41     | • expr '<' expr
-   42     | • '(' expr ')'
-   43     | • value
-   44     | • "ival"
-   45     | • "identifier" '(' args ')'
-   46     | • "identifier" '(' ')'
-   47 value: • "identifier"
-   48 args: • expr
-   49     | • args ',' expr
+   42     | • '-' expr
+   43     | • '(' expr ')'
+   44     | • value
+   45     | • "ival"
+   46     | • "identifier" '(' args ')'
+   47     | • "identifier" '(' ')'
+   48 value: • "identifier"
+   49 args: • expr
+   50     | • args ',' expr
 
     "ival"        shift, and go to state 55
     "identifier"  shift, and go to state 56
     '('           shift, and go to state 57
     ')'           shift, and go to state 58
+    '-'           shift, and go to state 59
 
-    expr   go to state 59
-    value  go to state 60
-    args   go to state 61
+    expr   go to state 60
+    value  go to state 61
+    args   go to state 62
 
 
 State 42
@@ -657,19 +662,21 @@ State 42
    39     | • expr "<=" expr
    40     | • expr '>' expr
    41     | • expr '<' expr
-   42     | • '(' expr ')'
-   43     | • value
-   44     | • "ival"
-   45     | • "identifier" '(' args ')'
-   46     | • "identifier" '(' ')'
-   47 value: • "identifier"
+   42     | • '-' expr
+   43     | • '(' expr ')'
+   44     | • value
+   45     | • "ival"
+   46     | • "identifier" '(' args ')'
+   47     | • "identifier" '(' ')'
+   48 value: • "identifier"
 
     "ival"        shift, and go to state 55
     "identifier"  shift, and go to state 56
     '('           shift, and go to state 57
+    '-'           shift, and go to state 59
 
-    expr   go to state 62
-    value  go to state 60
+    expr   go to state 63
+    value  go to state 61
 
 
 State 43
@@ -683,19 +690,21 @@ State 43
    39     | • expr "<=" expr
    40     | • expr '>' expr
    41     | • expr '<' expr
-   42     | • '(' expr ')'
-   43     | • value
-   44     | • "ival"
-   45     | • "identifier" '(' args ')'
-   46     | • "identifier" '(' ')'
-   47 value: • "identifier"
+   42     | • '-' expr
+   43     | • '(' expr ')'
+   44     | • value
+   45     | • "ival"
+   46     | • "identifier" '(' args ')'
+   47     | • "identifier" '(' ')'
+   48 value: • "identifier"
 
     "ival"        shift, and go to state 55
     "identifier"  shift, and go to state 56
     '('           shift, and go to state 57
+    '-'           shift, and go to state 59
 
-    expr   go to state 63
-    value  go to state 60
+    expr   go to state 64
+    value  go to state 61
 
 
 State 44
@@ -704,33 +713,33 @@ State 44
    32       | "let" value • "+=" expr
    33       | "let" value • "-=" expr
 
-    "+="  shift, and go to state 64
-    "-="  shift, and go to state 65
-    '='   shift, and go to state 66
+    "+="  shift, and go to state 65
+    "-="  shift, and go to state 66
+    '='   shift, and go to state 67
 
 
 State 45
 
    28 statement: "load" value • "<=" '<' value '>' ';'
 
-    "<="  shift, and go to state 67
+    "<="  shift, and go to state 68
 
 
 State 46
 
    29 statement: "store" '<' • value '>' "<=" value ';'
-   47 value: • "identifier"
+   48 value: • "identifier"
 
     "identifier"  shift, and go to state 24
 
-    value  go to state 68
+    value  go to state 69
 
 
 State 47
 
     8 block: '{' state_list • '}'
 
-    '}'  shift, and go to state 69
+    '}'  shift, and go to state 70
 
 
 State 48
@@ -758,46 +767,46 @@ State 51
 
    15 declaration: "def" value ':' "local" • ';'
 
-    ';'  shift, and go to state 70
+    ';'  shift, and go to state 71
 
 
 State 52
 
    16 declaration: "def" value ':' "rd" • ';'
 
-    ';'  shift, and go to state 71
+    ';'  shift, and go to state 72
 
 
 State 53
 
    17 declaration: "def" value ':' "rs1" • ';'
 
-    ';'  shift, and go to state 72
+    ';'  shift, and go to state 73
 
 
 State 54
 
    18 declaration: "def" value ':' "rs2" • ';'
 
-    ';'  shift, and go to state 73
+    ';'  shift, and go to state 74
 
 
 State 55
 
-   44 expr: "ival" •
+   45 expr: "ival" •
 
-    $default  reduce using rule 44 (expr)
+    $default  reduce using rule 45 (expr)
 
 
 State 56
 
-   45 expr: "identifier" • '(' args ')'
-   46     | "identifier" • '(' ')'
-   47 value: "identifier" •  ["||", "&&", "==", "!=", ">=", "<=", '>', '<', ';', ')', ',']
+   46 expr: "identifier" • '(' args ')'
+   47     | "identifier" • '(' ')'
+   48 value: "identifier" •  ["||", "&&", "==", "!=", ">=", "<=", '>', '<', ';', ')', ',']
 
-    '('  shift, and go to state 74
+    '('  shift, and go to state 75
 
-    $default  reduce using rule 47 (value)
+    $default  reduce using rule 48 (value)
 
 
 State 57
@@ -810,30 +819,60 @@ State 57
    39     | • expr "<=" expr
    40     | • expr '>' expr
    41     | • expr '<' expr
-   42     | • '(' expr ')'
-   42     | '(' • expr ')'
-   43     | • value
-   44     | • "ival"
-   45     | • "identifier" '(' args ')'
-   46     | • "identifier" '(' ')'
-   47 value: • "identifier"
+   42     | • '-' expr
+   43     | • '(' expr ')'
+   43     | '(' • expr ')'
+   44     | • value
+   45     | • "ival"
+   46     | • "identifier" '(' args ')'
+   47     | • "identifier" '(' ')'
+   48 value: • "identifier"
 
     "ival"        shift, and go to state 55
     "identifier"  shift, and go to state 56
     '('           shift, and go to state 57
+    '-'           shift, and go to state 59
 
-    expr   go to state 75
-    value  go to state 60
+    expr   go to state 76
+    value  go to state 61
 
 
 State 58
 
    24 statement: "identifier" '(' ')' • ';'
 
-    ';'  shift, and go to state 76
+    ';'  shift, and go to state 77
 
 
 State 59
+
+   34 expr: • expr "&&" expr
+   35     | • expr "||" expr
+   36     | • expr "==" expr
+   37     | • expr "!=" expr
+   38     | • expr ">=" expr
+   39     | • expr "<=" expr
+   40     | • expr '>' expr
+   41     | • expr '<' expr
+   42     | • '-' expr
+   42     | '-' • expr
+   43     | • '(' expr ')'
+   44     | • value
+   45     | • "ival"
+   46     | • "identifier" '(' args ')'
+   47     | • "identifier" '(' ')'
+   48 value: • "identifier"
+
+    "ival"        shift, and go to state 55
+    "identifier"  shift, and go to state 56
+    '('           shift, and go to state 57
+    '-'           shift, and go to state 59
+
+    expr   go to state 78
+    value  go to state 61
+
+
+State 60
 
    34 expr: expr • "&&" expr
    35     | expr • "||" expr
@@ -843,37 +882,37 @@ State 59
    39     | expr • "<=" expr
    40     | expr • '>' expr
    41     | expr • '<' expr
-   48 args: expr •  [')', ',']
+   49 args: expr •  [')', ',']
 
-    "||"  shift, and go to state 77
-    "&&"  shift, and go to state 78
-    "=="  shift, and go to state 79
-    "!="  shift, and go to state 80
-    ">="  shift, and go to state 81
-    "<="  shift, and go to state 82
-    '>'   shift, and go to state 83
-    '<'   shift, and go to state 84
+    "||"  shift, and go to state 79
+    "&&"  shift, and go to state 80
+    "=="  shift, and go to state 81
+    "!="  shift, and go to state 82
+    ">="  shift, and go to state 83
+    "<="  shift, and go to state 84
+    '>'   shift, and go to state 85
+    '<'   shift, and go to state 86
 
-    $default  reduce using rule 48 (args)
-
-
-State 60
-
-   43 expr: value •
-
-    $default  reduce using rule 43 (expr)
+    $default  reduce using rule 49 (args)
 
 
 State 61
 
-   23 statement: "identifier" '(' args • ')' ';'
-   49 args: args • ',' expr
+   44 expr: value •
 
-    ')'  shift, and go to state 85
-    ','  shift, and go to state 86
+    $default  reduce using rule 44 (expr)
 
 
 State 62
+
+   23 statement: "identifier" '(' args • ')' ';'
+   50 args: args • ',' expr
+
+    ')'  shift, and go to state 87
+    ','  shift, and go to state 88
+
+
+State 63
 
    25 statement: "if" '(' expr • ')' statement
    26          | "if" '(' expr • ')' statement "else" statement
@@ -886,18 +925,18 @@ State 62
    40     | expr • '>' expr
    41     | expr • '<' expr
 
-    "||"  shift, and go to state 77
-    "&&"  shift, and go to state 78
-    "=="  shift, and go to state 79
-    "!="  shift, and go to state 80
-    ">="  shift, and go to state 81
-    "<="  shift, and go to state 82
-    '>'   shift, and go to state 83
-    '<'   shift, and go to state 84
-    ')'   shift, and go to state 87
+    "||"  shift, and go to state 79
+    "&&"  shift, and go to state 80
+    "=="  shift, and go to state 81
+    "!="  shift, and go to state 82
+    ">="  shift, and go to state 83
+    "<="  shift, and go to state 84
+    '>'   shift, and go to state 85
+    '<'   shift, and go to state 86
+    ')'   shift, and go to state 89
 
 
-State 63
+State 64
 
    27 statement: "while" '(' expr • ')' statement
    34 expr: expr • "&&" expr
@@ -909,18 +948,18 @@ State 63
    40     | expr • '>' expr
    41     | expr • '<' expr
 
-    "||"  shift, and go to state 77
-    "&&"  shift, and go to state 78
-    "=="  shift, and go to state 79
-    "!="  shift, and go to state 80
-    ">="  shift, and go to state 81
-    "<="  shift, and go to state 82
-    '>'   shift, and go to state 83
-    '<'   shift, and go to state 84
-    ')'   shift, and go to state 88
+    "||"  shift, and go to state 79
+    "&&"  shift, and go to state 80
+    "=="  shift, and go to state 81
+    "!="  shift, and go to state 82
+    ">="  shift, and go to state 83
+    "<="  shift, and go to state 84
+    '>'   shift, and go to state 85
+    '<'   shift, and go to state 86
+    ')'   shift, and go to state 90
 
 
-State 64
+State 65
 
    32 assign: "let" value "+=" • expr
    34 expr: • expr "&&" expr
@@ -931,22 +970,24 @@ State 64
    39     | • expr "<=" expr
    40     | • expr '>' expr
    41     | • expr '<' expr
-   42     | • '(' expr ')'
-   43     | • value
-   44     | • "ival"
-   45     | • "identifier" '(' args ')'
-   46     | • "identifier" '(' ')'
-   47 value: • "identifier"
+   42     | • '-' expr
+   43     | • '(' expr ')'
+   44     | • value
+   45     | • "ival"
+   46     | • "identifier" '(' args ')'
+   47     | • "identifier" '(' ')'
+   48 value: • "identifier"
 
     "ival"        shift, and go to state 55
     "identifier"  shift, and go to state 56
     '('           shift, and go to state 57
+    '-'           shift, and go to state 59
 
-    expr   go to state 89
-    value  go to state 60
+    expr   go to state 91
+    value  go to state 61
 
 
-State 65
+State 66
 
    33 assign: "let" value "-=" • expr
    34 expr: • expr "&&" expr
@@ -957,22 +998,24 @@ State 65
    39     | • expr "<=" expr
    40     | • expr '>' expr
    41     | • expr '<' expr
-   42     | • '(' expr ')'
-   43     | • value
-   44     | • "ival"
-   45     | • "identifier" '(' args ')'
-   46     | • "identifier" '(' ')'
-   47 value: • "identifier"
+   42     | • '-' expr
+   43     | • '(' expr ')'
+   44     | • value
+   45     | • "ival"
+   46     | • "identifier" '(' args ')'
+   47     | • "identifier" '(' ')'
+   48 value: • "identifier"
 
     "ival"        shift, and go to state 55
     "identifier"  shift, and go to state 56
     '('           shift, and go to state 57
+    '-'           shift, and go to state 59
 
-    expr   go to state 90
-    value  go to state 60
+    expr   go to state 92
+    value  go to state 61
 
 
-State 66
+State 67
 
    31 assign: "let" value '=' • expr
    34 expr: • expr "&&" expr
@@ -983,71 +1026,73 @@ State 66
    39     | • expr "<=" expr
    40     | • expr '>' expr
    41     | • expr '<' expr
-   42     | • '(' expr ')'
-   43     | • value
-   44     | • "ival"
-   45     | • "identifier" '(' args ')'
-   46     | • "identifier" '(' ')'
-   47 value: • "identifier"
+   42     | • '-' expr
+   43     | • '(' expr ')'
+   44     | • value
+   45     | • "ival"
+   46     | • "identifier" '(' args ')'
+   47     | • "identifier" '(' ')'
+   48 value: • "identifier"
 
     "ival"        shift, and go to state 55
     "identifier"  shift, and go to state 56
     '('           shift, and go to state 57
+    '-'           shift, and go to state 59
 
-    expr   go to state 91
-    value  go to state 60
-
-
-State 67
-
-   28 statement: "load" value "<=" • '<' value '>' ';'
-
-    '<'  shift, and go to state 92
+    expr   go to state 93
+    value  go to state 61
 
 
 State 68
 
-   29 statement: "store" '<' value • '>' "<=" value ';'
+   28 statement: "load" value "<=" • '<' value '>' ';'
 
-    '>'  shift, and go to state 93
+    '<'  shift, and go to state 94
 
 
 State 69
+
+   29 statement: "store" '<' value • '>' "<=" value ';'
+
+    '>'  shift, and go to state 95
+
+
+State 70
 
     8 block: '{' state_list '}' •
 
     $default  reduce using rule 8 (block)
 
 
-State 70
+State 71
 
    15 declaration: "def" value ':' "local" ';' •
 
     $default  reduce using rule 15 (declaration)
 
 
-State 71
+State 72
 
    16 declaration: "def" value ':' "rd" ';' •
 
     $default  reduce using rule 16 (declaration)
 
 
-State 72
+State 73
 
    17 declaration: "def" value ':' "rs1" ';' •
 
     $default  reduce using rule 17 (declaration)
 
 
-State 73
+State 74
 
    18 declaration: "def" value ':' "rs2" ';' •
 
     $default  reduce using rule 18 (declaration)
 
 
-State 74
+State 75
 
    34 expr: • expr "&&" expr
    35     | • expr "||" expr
@@ -1057,28 +1102,30 @@ State 74
    39     | • expr "<=" expr
    40     | • expr '>' expr
    41     | • expr '<' expr
-   42     | • '(' expr ')'
-   43     | • value
-   44     | • "ival"
-   45     | • "identifier" '(' args ')'
-   45     | "identifier" '(' • args ')'
-   46     | • "identifier" '(' ')'
-   46     | "identifier" '(' • ')'
-   47 value: • "identifier"
-   48 args: • expr
-   49     | • args ',' expr
+   42     | • '-' expr
+   43     | • '(' expr ')'
+   44     | • value
+   45     | • "ival"
+   46     | • "identifier" '(' args ')'
+   46     | "identifier" '(' • args ')'
+   47     | • "identifier" '(' ')'
+   47     | "identifier" '(' • ')'
+   48 value: • "identifier"
+   49 args: • expr
+   50     | • args ',' expr
 
     "ival"        shift, and go to state 55
     "identifier"  shift, and go to state 56
     '('           shift, and go to state 57
-    ')'           shift, and go to state 94
+    ')'           shift, and go to state 96
+    '-'           shift, and go to state 59
 
-    expr   go to state 59
-    value  go to state 60
-    args   go to state 95
+    expr   go to state 60
+    value  go to state 61
+    args   go to state 97
 
 
-State 75
+State 76
 
    34 expr: expr • "&&" expr
    35     | expr • "||" expr
@@ -1088,27 +1135,51 @@ State 75
    39     | expr • "<=" expr
    40     | expr • '>' expr
    41     | expr • '<' expr
-   42     | '(' expr • ')'
+   43     | '(' expr • ')'
 
-    "||"  shift, and go to state 77
-    "&&"  shift, and go to state 78
-    "=="  shift, and go to state 79
-    "!="  shift, and go to state 80
-    ">="  shift, and go to state 81
-    "<="  shift, and go to state 82
-    '>'   shift, and go to state 83
-    '<'   shift, and go to state 84
-    ')'   shift, and go to state 96
+    "||"  shift, and go to state 79
+    "&&"  shift, and go to state 80
+    "=="  shift, and go to state 81
+    "!="  shift, and go to state 82
+    ">="  shift, and go to state 83
+    "<="  shift, and go to state 84
+    '>'   shift, and go to state 85
+    '<'   shift, and go to state 86
+    ')'   shift, and go to state 98
 
 
-State 76
+State 77
 
    24 statement: "identifier" '(' ')' ';' •
 
     $default  reduce using rule 24 (statement)
 
 
-State 77
+State 78
+
+   34 expr: expr • "&&" expr
+   35     | expr • "||" expr
+   36     | expr • "==" expr
+   37     | expr • "!=" expr
+   38     | expr • ">=" expr
+   39     | expr • "<=" expr
+   40     | expr • '>' expr
+   41     | expr • '<' expr
+   42     | '-' expr •  ["||", "&&", "==", "!=", ">=", "<=", '>', '<', ';', ')', ',']
+
+    $default  reduce using rule 42 (expr)
+
+    Conflict between rule 42 and token "||" resolved as reduce ("||" < NEG).
+    Conflict between rule 42 and token "&&" resolved as reduce ("&&" < NEG).
+    Conflict between rule 42 and token "==" resolved as reduce ("==" < NEG).
+    Conflict between rule 42 and token "!=" resolved as reduce ("!=" < NEG).
+    Conflict between rule 42 and token ">=" resolved as reduce (">=" < NEG).
+    Conflict between rule 42 and token "<=" resolved as reduce ("<=" < NEG).
+    Conflict between rule 42 and token '>' resolved as reduce ('>' < NEG).
+    Conflict between rule 42 and token '<' resolved as reduce ('<' < NEG).
+
+
+State 79
 
    34 expr: • expr "&&" expr
    35     | • expr "||" expr
@@ -1119,22 +1190,24 @@ State 77
    39     | • expr "<=" expr
    40     | • expr '>' expr
    41     | • expr '<' expr
-   42     | • '(' expr ')'
-   43     | • value
-   44     | • "ival"
-   45     | • "identifier" '(' args ')'
-   46     | • "identifier" '(' ')'
-   47 value: • "identifier"
+   42     | • '-' expr
+   43     | • '(' expr ')'
+   44     | • value
+   45     | • "ival"
+   46     | • "identifier" '(' args ')'
+   47     | • "identifier" '(' ')'
+   48 value: • "identifier"
 
     "ival"        shift, and go to state 55
     "identifier"  shift, and go to state 56
     '('           shift, and go to state 57
+    '-'           shift, and go to state 59
 
-    expr   go to state 97
-    value  go to state 60
+    expr   go to state 99
+    value  go to state 61
 
 
-State 78
+State 80
 
    34 expr: • expr "&&" expr
    34     | expr "&&" • expr
@@ -1145,22 +1218,24 @@ State 78
    39     | • expr "<=" expr
    40     | • expr '>' expr
    41     | • expr '<' expr
-   42     | • '(' expr ')'
-   43     | • value
-   44     | • "ival"
-   45     | • "identifier" '(' args ')'
-   46     | • "identifier" '(' ')'
-   47 value: • "identifier"
+   42     | • '-' expr
+   43     | • '(' expr ')'
+   44     | • value
+   45     | • "ival"
+   46     | • "identifier" '(' args ')'
+   47     | • "identifier" '(' ')'
+   48 value: • "identifier"
 
     "ival"        shift, and go to state 55
     "identifier"  shift, and go to state 56
     '('           shift, and go to state 57
+    '-'           shift, and go to state 59
 
-    expr   go to state 98
-    value  go to state 60
+    expr   go to state 100
+    value  go to state 61
 
 
-State 79
+State 81
 
    34 expr: • expr "&&" expr
    35     | • expr "||" expr
@@ -1171,22 +1246,24 @@ State 79
    39     | • expr "<=" expr
    40     | • expr '>' expr
    41     | • expr '<' expr
-   42     | • '(' expr ')'
-   43     | • value
-   44     | • "ival"
-   45     | • "identifier" '(' args ')'
-   46     | • "identifier" '(' ')'
-   47 value: • "identifier"
+   42     | • '-' expr
+   43     | • '(' expr ')'
+   44     | • value
+   45     | • "ival"
+   46     | • "identifier" '(' args ')'
+   47     | • "identifier" '(' ')'
+   48 value: • "identifier"
 
     "ival"        shift, and go to state 55
     "identifier"  shift, and go to state 56
     '('           shift, and go to state 57
+    '-'           shift, and go to state 59
 
-    expr   go to state 99
-    value  go to state 60
+    expr   go to state 101
+    value  go to state 61
 
 
-State 80
+State 82
 
    34 expr: • expr "&&" expr
    35     | • expr "||" expr
@@ -1197,22 +1274,24 @@ State 80
    39     | • expr "<=" expr
    40     | • expr '>' expr
    41     | • expr '<' expr
-   42     | • '(' expr ')'
-   43     | • value
-   44     | • "ival"
-   45     | • "identifier" '(' args ')'
-   46     | • "identifier" '(' ')'
-   47 value: • "identifier"
+   42     | • '-' expr
+   43     | • '(' expr ')'
+   44     | • value
+   45     | • "ival"
+   46     | • "identifier" '(' args ')'
+   47     | • "identifier" '(' ')'
+   48 value: • "identifier"
 
     "ival"        shift, and go to state 55
     "identifier"  shift, and go to state 56
     '('           shift, and go to state 57
+    '-'           shift, and go to state 59
 
-    expr   go to state 100
-    value  go to state 60
+    expr   go to state 102
+    value  go to state 61
 
 
-State 81
+State 83
 
    34 expr: • expr "&&" expr
    35     | • expr "||" expr
@@ -1223,71 +1302,21 @@ State 81
    39     | • expr "<=" expr
    40     | • expr '>' expr
    41     | • expr '<' expr
-   42     | • '(' expr ')'
-   43     | • value
-   44     | • "ival"
-   45     | • "identifier" '(' args ')'
-   46     | • "identifier" '(' ')'
-   47 value: • "identifier"
+   42     | • '-' expr
+   43     | • '(' expr ')'
+   44     | • value
+   45     | • "ival"
+   46     | • "identifier" '(' args ')'
+   47     | • "identifier" '(' ')'
+   48 value: • "identifier"
 
     "ival"        shift, and go to state 55
     "identifier"  shift, and go to state 56
     '('           shift, and go to state 57
-
-    expr   go to state 101
-    value  go to state 60
-
-
-State 82
-
-   34 expr: • expr "&&" expr
-   35     | • expr "||" expr
-   36     | • expr "==" expr
-   37     | • expr "!=" expr
-   38     | • expr ">=" expr
-   39     | • expr "<=" expr
-   39     | expr "<=" • expr
-   40     | • expr '>' expr
-   41     | • expr '<' expr
-   42     | • '(' expr ')'
-   43     | • value
-   44     | • "ival"
-   45     | • "identifier" '(' args ')'
-   46     | • "identifier" '(' ')'
-   47 value: • "identifier"
-
-    "ival"        shift, and go to state 55
-    "identifier"  shift, and go to state 56
-    '('           shift, and go to state 57
-
-    expr   go to state 102
-    value  go to state 60
-
-
-State 83
-
-   34 expr: • expr "&&" expr
-   35     | • expr "||" expr
-   36     | • expr "==" expr
-   37     | • expr "!=" expr
-   38     | • expr ">=" expr
-   39     | • expr "<=" expr
-   40     | • expr '>' expr
-   40     | expr '>' • expr
-   41     | • expr '<' expr
-   42     | • '(' expr ')'
-   43     | • value
-   44     | • "ival"
-   45     | • "identifier" '(' args ')'
-   46     | • "identifier" '(' ')'
-   47 value: • "identifier"
-
-    "ival"        shift, and go to state 55
-    "identifier"  shift, and go to state 56
-    '('           shift, and go to state 57
+    '-'           shift, and go to state 59
 
     expr   go to state 103
-    value  go to state 60
+    value  go to state 61
 
 
 State 84
@@ -1298,29 +1327,52 @@ State 84
    37     | • expr "!=" expr
    38     | • expr ">=" expr
    39     | • expr "<=" expr
+   39     | expr "<=" • expr
    40     | • expr '>' expr
    41     | • expr '<' expr
-   41     | expr '<' • expr
-   42     | • '(' expr ')'
-   43     | • value
-   44     | • "ival"
-   45     | • "identifier" '(' args ')'
-   46     | • "identifier" '(' ')'
-   47 value: • "identifier"
+   42     | • '-' expr
+   43     | • '(' expr ')'
+   44     | • value
+   45     | • "ival"
+   46     | • "identifier" '(' args ')'
+   47     | • "identifier" '(' ')'
+   48 value: • "identifier"
 
     "ival"        shift, and go to state 55
     "identifier"  shift, and go to state 56
     '('           shift, and go to state 57
+    '-'           shift, and go to state 59
 
     expr   go to state 104
-    value  go to state 60
+    value  go to state 61
 
 
 State 85
 
-   23 statement: "identifier" '(' args ')' • ';'
+   34 expr: • expr "&&" expr
+   35     | • expr "||" expr
+   36     | • expr "==" expr
+   37     | • expr "!=" expr
+   38     | • expr ">=" expr
+   39     | • expr "<=" expr
+   40     | • expr '>' expr
+   40     | expr '>' • expr
+   41     | • expr '<' expr
+   42     | • '-' expr
+   43     | • '(' expr ')'
+   44     | • value
+   45     | • "ival"
+   46     | • "identifier" '(' args ')'
+   47     | • "identifier" '(' ')'
+   48 value: • "identifier"
 
-    ';'  shift, and go to state 105
+    "ival"        shift, and go to state 55
+    "identifier"  shift, and go to state 56
+    '('           shift, and go to state 57
+    '-'           shift, and go to state 59
+
+    expr   go to state 105
+    value  go to state 61
 
 
 State 86
@@ -1333,23 +1385,60 @@ State 86
    39     | • expr "<=" expr
    40     | • expr '>' expr
    41     | • expr '<' expr
-   42     | • '(' expr ')'
-   43     | • value
-   44     | • "ival"
-   45     | • "identifier" '(' args ')'
-   46     | • "identifier" '(' ')'
-   47 value: • "identifier"
-   49 args: args ',' • expr
+   41     | expr '<' • expr
+   42     | • '-' expr
+   43     | • '(' expr ')'
+   44     | • value
+   45     | • "ival"
+   46     | • "identifier" '(' args ')'
+   47     | • "identifier" '(' ')'
+   48 value: • "identifier"
 
     "ival"        shift, and go to state 55
     "identifier"  shift, and go to state 56
     '('           shift, and go to state 57
+    '-'           shift, and go to state 59
 
     expr   go to state 106
-    value  go to state 60
+    value  go to state 61
 
 
 State 87
+
+   23 statement: "identifier" '(' args ')' • ';'
+
+    ';'  shift, and go to state 107
+
+
+State 88
+
+   34 expr: • expr "&&" expr
+   35     | • expr "||" expr
+   36     | • expr "==" expr
+   37     | • expr "!=" expr
+   38     | • expr ">=" expr
+   39     | • expr "<=" expr
+   40     | • expr '>' expr
+   41     | • expr '<' expr
+   42     | • '-' expr
+   43     | • '(' expr ')'
+   44     | • value
+   45     | • "ival"
+   46     | • "identifier" '(' args ')'
+   47     | • "identifier" '(' ')'
+   48 value: • "identifier"
+   50 args: args ',' • expr
+
+    "ival"        shift, and go to state 55
+    "identifier"  shift, and go to state 56
+    '('           shift, and go to state 57
+    '-'           shift, and go to state 59
+
+    expr   go to state 108
+    value  go to state 61
+
+
+State 89
 
     8 block: • '{' state_list '}'
    21 statement: • ';'
@@ -1378,11 +1467,11 @@ State 87
     '{'           shift, and go to state 33
 
     block      go to state 34
-    statement  go to state 107
+    statement  go to state 109
     assign     go to state 38
 
 
-State 88
+State 90
 
     8 block: • '{' state_list '}'
    21 statement: • ';'
@@ -1410,11 +1499,11 @@ State 88
     '{'           shift, and go to state 33
 
     block      go to state 34
-    statement  go to state 108
+    statement  go to state 110
     assign     go to state 38
 
 
-State 89
+State 91
 
    32 assign: "let" value "+=" expr •  [';']
    34 expr: expr • "&&" expr
@@ -1426,19 +1515,19 @@ State 89
    40     | expr • '>' expr
    41     | expr • '<' expr
 
-    "||"  shift, and go to state 77
-    "&&"  shift, and go to state 78
-    "=="  shift, and go to state 79
-    "!="  shift, and go to state 80
-    ">="  shift, and go to state 81
-    "<="  shift, and go to state 82
-    '>'   shift, and go to state 83
-    '<'   shift, and go to state 84
+    "||"  shift, and go to state 79
+    "&&"  shift, and go to state 80
+    "=="  shift, and go to state 81
+    "!="  shift, and go to state 82
+    ">="  shift, and go to state 83
+    "<="  shift, and go to state 84
+    '>'   shift, and go to state 85
+    '<'   shift, and go to state 86
 
     $default  reduce using rule 32 (assign)
 
 
-State 90
+State 92
 
    33 assign: "let" value "-=" expr •  [';']
    34 expr: expr • "&&" expr
@@ -1450,19 +1539,19 @@ State 90
    40     | expr • '>' expr
    41     | expr • '<' expr
 
-    "||"  shift, and go to state 77
-    "&&"  shift, and go to state 78
-    "=="  shift, and go to state 79
-    "!="  shift, and go to state 80
-    ">="  shift, and go to state 81
-    "<="  shift, and go to state 82
-    '>'   shift, and go to state 83
-    '<'   shift, and go to state 84
+    "||"  shift, and go to state 79
+    "&&"  shift, and go to state 80
+    "=="  shift, and go to state 81
+    "!="  shift, and go to state 82
+    ">="  shift, and go to state 83
+    "<="  shift, and go to state 84
+    '>'   shift, and go to state 85
+    '<'   shift, and go to state 86
 
     $default  reduce using rule 33 (assign)
 
 
-State 91
+State 93
 
    31 assign: "let" value '=' expr •  [';']
    34 expr: expr • "&&" expr
@@ -1474,59 +1563,59 @@ State 91
    40     | expr • '>' expr
    41     | expr • '<' expr
 
-    "||"  shift, and go to state 77
-    "&&"  shift, and go to state 78
-    "=="  shift, and go to state 79
-    "!="  shift, and go to state 80
-    ">="  shift, and go to state 81
-    "<="  shift, and go to state 82
-    '>'   shift, and go to state 83
-    '<'   shift, and go to state 84
+    "||"  shift, and go to state 79
+    "&&"  shift, and go to state 80
+    "=="  shift, and go to state 81
+    "!="  shift, and go to state 82
+    ">="  shift, and go to state 83
+    "<="  shift, and go to state 84
+    '>'   shift, and go to state 85
+    '<'   shift, and go to state 86
 
     $default  reduce using rule 31 (assign)
 
 
-State 92
+State 94
 
    28 statement: "load" value "<=" '<' • value '>' ';'
-   47 value: • "identifier"
+   48 value: • "identifier"
 
     "identifier"  shift, and go to state 24
 
-    value  go to state 109
-
-
-State 93
-
-   29 statement: "store" '<' value '>' • "<=" value ';'
-
-    "<="  shift, and go to state 110
-
-
-State 94
-
-   46 expr: "identifier" '(' ')' •
-
-    $default  reduce using rule 46 (expr)
+    value  go to state 111
 
 
 State 95
 
-   45 expr: "identifier" '(' args • ')'
-   49 args: args • ',' expr
+   29 statement: "store" '<' value '>' • "<=" value ';'
 
-    ')'  shift, and go to state 111
-    ','  shift, and go to state 86
+    "<="  shift, and go to state 112
 
 
 State 96
 
-   42 expr: '(' expr ')' •
+   47 expr: "identifier" '(' ')' •
 
-    $default  reduce using rule 42 (expr)
+    $default  reduce using rule 47 (expr)
 
 
 State 97
+
+   46 expr: "identifier" '(' args • ')'
+   50 args: args • ',' expr
+
+    ')'  shift, and go to state 113
+    ','  shift, and go to state 88
+
+
+State 98
+
+   43 expr: '(' expr ')' •
+
+    $default  reduce using rule 43 (expr)
+
+
+State 99
 
    34 expr: expr • "&&" expr
    35     | expr • "||" expr
@@ -1538,13 +1627,13 @@ State 97
    40     | expr • '>' expr
    41     | expr • '<' expr
 
-    "&&"  shift, and go to state 78
-    "=="  shift, and go to state 79
-    "!="  shift, and go to state 80
-    ">="  shift, and go to state 81
-    "<="  shift, and go to state 82
-    '>'   shift, and go to state 83
-    '<'   shift, and go to state 84
+    "&&"  shift, and go to state 80
+    "=="  shift, and go to state 81
+    "!="  shift, and go to state 82
+    ">="  shift, and go to state 83
+    "<="  shift, and go to state 84
+    '>'   shift, and go to state 85
+    '<'   shift, and go to state 86
 
     $default  reduce using rule 35 (expr)
 
@@ -1558,7 +1647,7 @@ State 97
     Conflict between rule 35 and token '<' resolved as shift ("||" < '<').
 
 
-State 98
+State 100
 
    34 expr: expr • "&&" expr
    34     | expr "&&" expr •  ["||", "&&", ';', ')', ',']
@@ -1570,12 +1659,12 @@ State 98
    40     | expr • '>' expr
    41     | expr • '<' expr
 
-    "=="  shift, and go to state 79
-    "!="  shift, and go to state 80
-    ">="  shift, and go to state 81
-    "<="  shift, and go to state 82
-    '>'   shift, and go to state 83
-    '<'   shift, and go to state 84
+    "=="  shift, and go to state 81
+    "!="  shift, and go to state 82
+    ">="  shift, and go to state 83
+    "<="  shift, and go to state 84
+    '>'   shift, and go to state 85
+    '<'   shift, and go to state 86
 
     $default  reduce using rule 34 (expr)
 
@@ -1589,7 +1678,7 @@ State 98
     Conflict between rule 34 and token '<' resolved as shift ("&&" < '<').
 
 
-State 99
+State 101
 
    34 expr: expr • "&&" expr
    35     | expr • "||" expr
@@ -1620,7 +1709,7 @@ State 99
     Conflict between rule 36 and token '<' resolved as an error (%nonassoc '<').
 
 
-State 100
+State 102
 
    34 expr: expr • "&&" expr
    35     | expr • "||" expr
@@ -1651,7 +1740,7 @@ State 100
     Conflict between rule 37 and token '<' resolved as an error (%nonassoc '<').
 
 
-State 101
+State 103
 
    34 expr: expr • "&&" expr
    35     | expr • "||" expr
@@ -1682,7 +1771,7 @@ State 101
     Conflict between rule 38 and token '<' resolved as an error (%nonassoc '<').
 
 
-State 102
+State 104
 
    34 expr: expr • "&&" expr
    35     | expr • "||" expr
@@ -1713,7 +1802,7 @@ State 102
     Conflict between rule 39 and token '<' resolved as an error (%nonassoc '<').
 
 
-State 103
+State 105
 
    34 expr: expr • "&&" expr
    35     | expr • "||" expr
@@ -1744,7 +1833,7 @@ State 103
     Conflict between rule 40 and token '<' resolved as an error (%nonassoc '<').
 
 
-State 104
+State 106
 
    34 expr: expr • "&&" expr
    35     | expr • "||" expr
@@ -1775,14 +1864,14 @@ State 104
     Conflict between rule 41 and token '<' resolved as an error (%nonassoc '<').
 
 
-State 105
+State 107
 
    23 statement: "identifier" '(' args ')' ';' •
 
     $default  reduce using rule 23 (statement)
 
 
-State 106
+State 108
 
    34 expr: expr • "&&" expr
    35     | expr • "||" expr
@@ -1792,26 +1881,26 @@ State 106
    39     | expr • "<=" expr
    40     | expr • '>' expr
    41     | expr • '<' expr
-   49 args: args ',' expr •  [')', ',']
+   50 args: args ',' expr •  [')', ',']
 
-    "||"  shift, and go to state 77
-    "&&"  shift, and go to state 78
-    "=="  shift, and go to state 79
-    "!="  shift, and go to state 80
-    ">="  shift, and go to state 81
-    "<="  shift, and go to state 82
-    '>'   shift, and go to state 83
-    '<'   shift, and go to state 84
+    "||"  shift, and go to state 79
+    "&&"  shift, and go to state 80
+    "=="  shift, and go to state 81
+    "!="  shift, and go to state 82
+    ">="  shift, and go to state 83
+    "<="  shift, and go to state 84
+    '>'   shift, and go to state 85
+    '<'   shift, and go to state 86
 
-    $default  reduce using rule 49 (args)
+    $default  reduce using rule 50 (args)
 
 
-State 107
+State 109
 
    25 statement: "if" '(' expr ')' statement •  ["identifier", "if", "else", "while", "let", "load", "store", ';', '{', '}']
    26          | "if" '(' expr ')' statement • "else" statement
 
-    "else"  shift, and go to state 112
+    "else"  shift, and go to state 114
 
     "else"    [reduce using rule 25 (statement)]
     $default  reduce using rule 25 (statement)
@@ -1831,38 +1920,38 @@ State 107
 
 
 
-State 108
+State 110
 
    27 statement: "while" '(' expr ')' statement •
 
     $default  reduce using rule 27 (statement)
 
 
-State 109
+State 111
 
    28 statement: "load" value "<=" '<' value • '>' ';'
 
-    '>'  shift, and go to state 113
-
-
-State 110
-
-   29 statement: "store" '<' value '>' "<=" • value ';'
-   47 value: • "identifier"
-
-    "identifier"  shift, and go to state 24
-
-    value  go to state 114
-
-
-State 111
-
-   45 expr: "identifier" '(' args ')' •
-
-    $default  reduce using rule 45 (expr)
+    '>'  shift, and go to state 115
 
 
 State 112
+
+   29 statement: "store" '<' value '>' "<=" • value ';'
+   48 value: • "identifier"
+
+    "identifier"  shift, and go to state 24
+
+    value  go to state 116
+
+
+State 113
+
+   46 expr: "identifier" '(' args ')' •
+
+    $default  reduce using rule 46 (expr)
+
+
+State 114
 
     8 block: • '{' state_list '}'
    21 statement: • ';'
@@ -1890,39 +1979,39 @@ State 112
     '{'           shift, and go to state 33
 
     block      go to state 34
-    statement  go to state 115
+    statement  go to state 117
     assign     go to state 38
 
 
-State 113
+State 115
 
    28 statement: "load" value "<=" '<' value '>' • ';'
 
-    ';'  shift, and go to state 116
+    ';'  shift, and go to state 118
 
 
-State 114
+State 116
 
    29 statement: "store" '<' value '>' "<=" value • ';'
 
-    ';'  shift, and go to state 117
+    ';'  shift, and go to state 119
 
 
-State 115
+State 117
 
    26 statement: "if" '(' expr ')' statement "else" statement •
 
     $default  reduce using rule 26 (statement)
 
 
-State 116
+State 118
 
    28 statement: "load" value "<=" '<' value '>' ';' •
 
     $default  reduce using rule 28 (statement)
 
 
-State 117
+State 119
 
    29 statement: "store" '<' value '>' "<=" value ';' •
 

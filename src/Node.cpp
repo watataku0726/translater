@@ -5,6 +5,14 @@
 
 OptNode* OptNode::MakeNode(Option& option, const yy::location& l, OPCODE op, OptNode* left, OptNode* right) {
     if(right == nullptr) {
+        switch(op) {
+            case OPCODE::OP_NEG:
+                if(left->mOp == OPCODE::OP_CONST) {
+                    left->mValue = -left->mValue;
+                    return left;
+                }
+            break;
+        }
         return new OptNode(l, op, left);
     }
 
@@ -52,6 +60,13 @@ void OptNode::Analyze(Option* option, Instruction* inst, std::stringstream& ss, 
         for(int i = 0; i < depth; ++i) 
             ss << '\t';
         ss << "tcg_gen_movi_tl(tmp" << times++ << ", " << mValue << ");\n";
+        return;
+    } else if(mOp == OPCODE::OP_NEG) {
+        mLeft->Analyze(option,inst, ss, depth, times);
+        for(int i = 0; i < depth; ++i) 
+            ss << '\t';
+        ss << "tcg_gen_neg_tl(tmp" << times <<", tmp" << times - 1 << ");\n";
+        ++times;
         return;
     }
     
