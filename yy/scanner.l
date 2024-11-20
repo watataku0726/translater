@@ -69,7 +69,7 @@ blank   [ \t]
 
     \\\n            yylloc->lines();
 
-    [=(){}<>,:;]      return yy::parser::token_type(yytext[0]);
+    [-=(){}<>,:;]      return yy::parser::token_type(yytext[0]);
 
     "&&"            return token::TK_LOGAND;
     "||"            return token::TK_LOGOR;

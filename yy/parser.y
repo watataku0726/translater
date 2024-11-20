@@ -93,6 +93,7 @@ class Option;
 %left "||";
 %left "&&";
 %nonassoc "==" "!=" '>' '<' ">=" "<=";
+%left NEG;
 %%
 %start unit;
 
@@ -158,6 +159,7 @@ expr                : expr "&&" expr            { $$ =  OptNode::MakeNode(driver
                     | expr "<=" expr            { $$ =  OptNode::MakeNode(driver, @2, OPCODE::OP_LE, $1, $3); }
                     | expr '>' expr             { $$ =  OptNode::MakeNode(driver, @2, OPCODE::OP_GT, $1, $3); }
                     | expr '<' expr             { $$ =  OptNode::MakeNode(driver, @2, OPCODE::OP_LT, $1, $3); }
+                    | '-' expr %prec NEG        { $$ =  OptNode::MakeNode(driver, @2, OPCODE::OP_NEG, $2); }
                     | '(' expr ')'              { $$ = $2; }
                     | value                     { $$ = $1; }
                     | "ival"                    { $$ = new OptNode(@1, OPCODE::OP_CONST, $1); }

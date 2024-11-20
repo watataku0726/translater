@@ -56,6 +56,7 @@ enum class OPCODE : int {
     OP_GE,
     OP_LT,
     OP_LE,
+    OP_NEG,
     OP_VALUE,
     OP_CONST,
     OP_FUNCTION,
