@@ -1347,6 +1347,6 @@ void Translater::Help() {
 
 void Translater::Version() {
     std::cout   << "translater beta version\n"
-                << "Copyright (C) 2023 Takuto Watanabe, Tokyo Institute of Technology\n"
+                << "Copyright (C) 2024 Takuto Watanabe, Tokyo Institute of Technology\n"
                 << std::endl; 
 }
