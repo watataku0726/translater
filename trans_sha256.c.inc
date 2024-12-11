@@ -1492,6 +1492,10 @@ static bool trans_storeData(DisasContext *ctx, arg_storeData *a) {
 static bool trans_computeHash(DisasContext *ctx, arg_computeHash *a) {
 	TCGLabel *label0 = gen_new_label();
 	TCGLabel *label1 = gen_new_label();
+	TCGLabel *label2 = gen_new_label();
+	TCGLabel *label3 = gen_new_label();
+	TCGLabel *label4 = gen_new_label();
+	TCGLabel *label5 = gen_new_label();
 
 	TCGv tmp0 = tcg_temp_new();
 	TCGv r0 = tcg_temp_new();
@@ -1514,6 +1518,23 @@ static bool trans_computeHash(DisasContext *ctx, arg_computeHash *a) {
 
 	gen_set_label(label1);
 	tcg_gen_mov_tl(rd__, dataOut);
+	tcg_gen_setcondi_tl(TCG_COND_EQ, tmp0, ready_, 0);
+	tcg_gen_brcondi_tl(TCG_COND_EQ, tmp0, 0, label2);
+	tcg_gen_movi_tl(ready_, 1);
+	tcg_gen_brcondi_tl(TCG_COND_ALWAYS, ctx->zero, 0, label3);
+
+	gen_set_label(label2);
+	tcg_gen_setcondi_tl(TCG_COND_EQ, tmp0, ready_, 1);
+	tcg_gen_brcondi_tl(TCG_COND_EQ, tmp0, 0, label4);
+	tcg_gen_movi_tl(ready_, 1);
+	tcg_gen_brcondi_tl(TCG_COND_ALWAYS, ctx->zero, 0, label5);
+
+	gen_set_label(label4);
+	tcg_gen_movi_tl(ready_, 1);
+
+	gen_set_label(label5);
+
+	gen_set_label(label3);
 	return true;
 }
 
