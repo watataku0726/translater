@@ -65,7 +65,7 @@ void OptNode::Analyze(Option* option, Instruction* inst, std::stringstream& ss, 
         if(mLeft->Op() == OPCODE::OP_VALUE) {
             for(int i = 0; i < depth; ++i) 
                 ss << '\t';
-            ss << "tcg_gen_neg_tl(tmp" << times++ << ", " << mLeft->String() << ");\n";
+            ss << "tcg_gen_neg_tl(tmp" << times++ << ", " << mLeft->String() << "_);\n";
         } else {
             mLeft->Analyze(option,inst, ss, depth, times);
             for(int i = 0; i < depth; ++i) 
